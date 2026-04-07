@@ -9,10 +9,11 @@ import {
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getLiveBusesForLine, getVariantsForLine } from '../../services/api/lines';
+import { getStopsForLine, LineStop } from '../../services/storage/stopRoutes';
 import { Colors } from '../../constants/colors';
 import { Theme } from '../../constants/theme';
 import { LiveBus, LineVariant } from '../../types';
@@ -55,10 +56,12 @@ export default function LineDetailScreen() {
 
   const [buses, setBuses] = useState<(LiveBus & { destination?: string; origin?: string })[]>([]);
   const [variants, setVariants] = useState<LineVariant[]>([]);
+  const [lineStops, setLineStops] = useState<LineStop[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [filterVariant, setFilterVariant] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mapRef = useRef<MapView>(null);
 
   const color = lineColor(lineName);
 
@@ -79,6 +82,21 @@ export default function LineDetailScreen() {
       setLastRefresh(new Date());
     } finally {
       setLoading(false);
+    }
+  }, [lineName]);
+
+  // Load stops from local GTFS data once
+  useEffect(() => {
+    const stops = getStopsForLine(lineName);
+    setLineStops(stops);
+    // Fit map to all stops after load
+    if (stops.length > 0 && mapRef.current) {
+      setTimeout(() => {
+        mapRef.current?.fitToCoordinates(
+          stops.map((s) => ({ latitude: s.lat, longitude: s.lon })),
+          { edgePadding: { top: 100, right: 40, bottom: 200, left: 40 }, animated: true }
+        );
+      }, 500);
     }
   }, [lineName]);
 
@@ -104,6 +122,7 @@ export default function LineDetailScreen() {
     <View style={styles.container}>
       {/* Map */}
       <MapView
+        ref={mapRef}
         style={StyleSheet.absoluteFillObject}
         provider={PROVIDER_DEFAULT}
         initialRegion={MONTEVIDEO}
@@ -111,6 +130,19 @@ export default function LineDetailScreen() {
         showsCompass={false}
         toolbarEnabled={false}
       >
+        {/* Stop markers */}
+        {lineStops.map((stop) => (
+          <Marker
+            key={`stop-${stop.id}`}
+            coordinate={{ latitude: stop.lat, longitude: stop.lon }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+          >
+            <View style={[styles.stopMarker, { borderColor: color }]} />
+          </Marker>
+        ))}
+
+        {/* Live bus markers */}
         {displayBuses.map((bus) =>
           bus.latitude && bus.longitude ? (
             <Marker
@@ -161,7 +193,7 @@ export default function LineDetailScreen() {
         ]}
       >
         <Text style={styles.bottomTitle}>
-          {buses.length} bus{buses.length !== 1 ? 'es' : ''} activo{buses.length !== 1 ? 's' : ''} en línea {lineName}
+          Línea {lineName} · {lineStops.length} paradas · {buses.length} bus{buses.length !== 1 ? 'es' : ''} activo{buses.length !== 1 ? 's' : ''}
         </Text>
 
         {destinations.length > 0 && (
@@ -218,6 +250,15 @@ export default function LineDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
+  // Stop marker on map
+  stopMarker: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.white,
+    borderWidth: 2,
+  },
 
   // Bus marker on map
   busMarker: {

@@ -51,3 +51,20 @@ export function findNearbyStops(lat: number, lon: number, maxMeters: number): Ne
 }
 
 export { haversineMeters };
+
+export interface LineStop {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+}
+
+export function getStopsForLine(lineName: string): LineStop[] {
+  const result: LineStop[] = [];
+  for (const [id, d] of Object.entries(stopData)) {
+    if (d.lines.includes(lineName)) {
+      result.push({ id, name: d.name, lat: d.lat, lon: d.lon });
+    }
+  }
+  return result;
+}

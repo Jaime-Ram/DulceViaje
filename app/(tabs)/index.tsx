@@ -619,6 +619,7 @@ export default function HomeScreen() {
   const [isNow, setIsNow] = useState(true);
   const [departureTime, setDepartureTime] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [timeType, setTimeType] = useState<'departure' | 'arrival'>('departure');
 
   // Active journey countdown
   const [now, setNow] = useState(new Date());
@@ -757,6 +758,26 @@ export default function HomeScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Departure / Arrival sub-toggle (only when Más tarde is active) */}
+          {!isNow && (
+            <View style={styles.timeTypeRow}>
+              <TouchableOpacity
+                style={[styles.timeTypeBtn, timeType === 'departure' && styles.timeTypeBtnActive]}
+                onPress={() => setTimeType('departure')}
+              >
+                <Ionicons name="arrow-up-circle-outline" size={13} color={timeType === 'departure' ? Colors.white : 'rgba(255,255,255,0.6)'} />
+                <Text style={[styles.timeTypeText, timeType === 'departure' && { color: Colors.white }]}>Salida</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.timeTypeBtn, timeType === 'arrival' && styles.timeTypeBtnActive]}
+                onPress={() => setTimeType('arrival')}
+              >
+                <Ionicons name="arrow-down-circle-outline" size={13} color={timeType === 'arrival' ? Colors.white : 'rgba(255,255,255,0.6)'} />
+                <Text style={[styles.timeTypeText, timeType === 'arrival' && { color: Colors.white }]}>Llegada</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* iOS inline time picker */}
           {showTimePicker && Platform.OS === 'ios' && (
@@ -1062,7 +1083,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Theme.spacing.base,
-    height: 52,
+    paddingTop: 15,
+    paddingBottom: 15,
     gap: Theme.spacing.sm,
   },
   planDot: {
@@ -1115,13 +1137,28 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary,
   },
   timeToggleText: {
-    fontSize: Theme.fontSize.base, fontWeight: '600', color: 'rgba(255,255,255,0.85)',
+    fontSize: 17, fontWeight: '700', color: 'rgba(255,255,255,0.85)',
   },
   timeToggleTextActiveAhora: {
     color: Colors.white,
   },
   timeToggleTextActiveLater: {
     color: Colors.white,
+  },
+  timeTypeRow: {
+    flexDirection: 'row',
+    gap: Theme.spacing.sm,
+  },
+  timeTypeBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 5, paddingVertical: 6, borderRadius: Theme.radius.full,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  timeTypeBtnActive: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  timeTypeText: {
+    fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.6)',
   },
   timePickerWrap: {
     backgroundColor: Colors.white, borderRadius: Theme.radius.xl,

@@ -27,16 +27,17 @@ export async function searchLines(query: string): Promise<LineVariant[]> {
   if (!query.trim()) return [];
   const all = await getAllVariants();
   const q = query.trim().toUpperCase();
-  // Deduplicate by lineName+headsign
+  // Only match lines that START with the query (so "104" doesn't show "1040", "1041")
+  // Deduplicate by lineName so each line appears once
   const seen = new Set<string>();
   return all
-    .filter((v) => v.lineName.toUpperCase().startsWith(q) || v.lineName.toUpperCase().includes(q))
+    .filter((v) => v.lineName.toUpperCase().startsWith(q))
     .filter((v) => {
-      const key = `${v.lineName}-${v.headsign}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
+      if (seen.has(v.lineName)) return false;
+      seen.add(v.lineName);
       return true;
     })
+    .sort((a, b) => a.lineName.localeCompare(b.lineName, undefined, { numeric: true }))
     .slice(0, 20);
 }
 
