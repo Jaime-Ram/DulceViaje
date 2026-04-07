@@ -691,51 +691,37 @@ export default function HomeScreen() {
           {/* From/To card */}
           <View style={styles.planCard}>
             {/* FROM field */}
-            <TouchableOpacity
-              style={styles.planField}
-              onPress={() => setPickingField('from')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.planDot, { backgroundColor: Colors.primary }]} />
-              <Text
-                style={[
-                  styles.planFieldText,
-                  !fromLocation && styles.planFieldPlaceholder,
-                ]}
-                numberOfLines={1}
-              >
-                {fromLocation ? fromLocation.name : '¿Desde dónde?'}
-              </Text>
+            <TouchableOpacity onPress={() => setPickingField('from')} activeOpacity={0.8}>
+              <View style={styles.planField}>
+                <View style={[styles.planDot, { backgroundColor: Colors.primary }]} />
+                <Text
+                  style={[styles.planFieldText, !fromLocation && styles.planFieldPlaceholder]}
+                  numberOfLines={1}
+                >
+                  {fromLocation ? fromLocation.name : '¿Desde dónde?'}
+                </Text>
+              </View>
             </TouchableOpacity>
 
             {/* Divider + swap button */}
             <View style={styles.planDividerRow}>
               <View style={styles.planDividerLine} />
-              <TouchableOpacity
-                style={styles.swapBtn}
-                onPress={swapLocations}
-                activeOpacity={0.8}
-              >
+              <TouchableOpacity style={styles.swapBtn} onPress={swapLocations} activeOpacity={0.8}>
                 <Ionicons name="swap-vertical" size={18} color={Colors.primary} />
               </TouchableOpacity>
             </View>
 
             {/* TO field */}
-            <TouchableOpacity
-              style={styles.planField}
-              onPress={() => setPickingField('to')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="location" size={16} color={Colors.secondary} />
-              <Text
-                style={[
-                  styles.planFieldText,
-                  !toLocation && styles.planFieldPlaceholder,
-                ]}
-                numberOfLines={1}
-              >
-                {toLocation ? toLocation.name : '¿A dónde vas?'}
-              </Text>
+            <TouchableOpacity onPress={() => setPickingField('to')} activeOpacity={0.8}>
+              <View style={styles.planField}>
+                <Ionicons name="location" size={16} color={Colors.secondary} />
+                <Text
+                  style={[styles.planFieldText, !toLocation && styles.planFieldPlaceholder]}
+                  numberOfLines={1}
+                >
+                  {toLocation ? toLocation.name : '¿A dónde vas?'}
+                </Text>
+              </View>
             </TouchableOpacity>
           </View>
 
