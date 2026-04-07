@@ -1061,7 +1061,6 @@ const styles = StyleSheet.create({
   planField: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: Theme.spacing.base,
     height: 52,
     gap: Theme.spacing.sm,
@@ -1116,7 +1115,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary,
   },
   timeToggleText: {
-    fontSize: Theme.fontSize.sm, fontWeight: '600', color: 'rgba(255,255,255,0.85)',
+    fontSize: Theme.fontSize.base, fontWeight: '600', color: 'rgba(255,255,255,0.85)',
   },
   timeToggleTextActiveAhora: {
     color: Colors.white,
