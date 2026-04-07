@@ -173,15 +173,12 @@ export async function getNearbyStops(
   lon: number,
   radiusMeters: number = DEFAULT_RADIUS_METERS
 ): Promise<BusStop[]> {
-  try {
-    const allStops = await getAllStops();
-
-    return allStops.filter((stop) => {
-      const distance = haversineDistance(lat, lon, stop.latitude, stop.longitude);
-      return distance <= radiusMeters;
-    });
-  } catch (error) {
-    console.error('getNearbyStops error:', error);
-    return [];
-  }
+  const { findNearbyStops } = await import('../storage/stopRoutes');
+  return findNearbyStops(lat, lon, radiusMeters).map((s) => ({
+    id: Number(s.id),
+    name: s.name,
+    latitude: s.lat,
+    longitude: s.lon,
+    lines: s.lines,
+  }));
 }
