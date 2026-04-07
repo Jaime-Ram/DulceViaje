@@ -4,14 +4,29 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Text, TextInput } from 'react-native';
+import { useFonts, Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import { Colors } from '../constants/colors';
 import Onboarding from '../components/Onboarding';
 
 const ONBOARDING_KEY = 'bondivideo_onboarding_done';
 
+// Apply Nunito as the default font for all Text and TextInput components
+(Text as any).defaultProps = (Text as any).defaultProps || {};
+(Text as any).defaultProps.style = [{ fontFamily: 'Nunito_400Regular' }];
+(TextInput as any).defaultProps = (TextInput as any).defaultProps || {};
+(TextInput as any).defaultProps.style = [{ fontFamily: 'Nunito_400Regular' }];
+
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  const [fontsLoaded] = useFonts({
+    Nunito_400Regular,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+  });
 
   useEffect(() => {
     AsyncStorage.getItem(ONBOARDING_KEY).then((val) => {
@@ -25,8 +40,8 @@ export default function RootLayout() {
     setShowOnboarding(false);
   };
 
-  // Wait for AsyncStorage check before rendering anything
-  if (!ready) return null;
+  // Wait for fonts and AsyncStorage check before rendering anything
+  if (!ready || !fontsLoaded) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

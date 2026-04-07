@@ -744,15 +744,15 @@ export default function HomeScreen() {
               style={[styles.timeToggleBtn, isNow && styles.timeToggleBtnActive]}
               onPress={() => { setIsNow(true); setShowTimePicker(false); }}
             >
-              <Ionicons name="time" size={14} color={isNow ? Colors.secondaryText : Colors.textSecondary} />
-              <Text style={[styles.timeToggleText, isNow && styles.timeToggleTextActive]}>Ahora</Text>
+              <Ionicons name="time" size={14} color={isNow ? Colors.primary : Colors.textSecondary} />
+              <Text style={[styles.timeToggleText, isNow && styles.timeToggleTextActiveAhora]}>Ahora</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.timeToggleBtn, !isNow && styles.timeToggleBtnActive]}
               onPress={() => { setIsNow(false); setShowTimePicker(true); }}
             >
-              <Ionicons name="calendar" size={14} color={!isNow ? Colors.secondaryText : Colors.textSecondary} />
-              <Text style={[styles.timeToggleText, !isNow && styles.timeToggleTextActive]}>
+              <Ionicons name="calendar" size={14} color={Colors.white} />
+              <Text style={[styles.timeToggleText, !isNow && styles.timeToggleTextActiveLater]}>
                 {!isNow ? formatTime(departureTime) : 'Más tarde'}
               </Text>
             </TouchableOpacity>
@@ -793,8 +793,8 @@ export default function HomeScreen() {
             disabled={!canSearch || searching}
           >
             {searching
-              ? <ActivityIndicator size="small" color={Colors.secondaryText} />
-              : <Ionicons name="search" size={18} color={canSearch ? Colors.secondaryText : Colors.textTertiary} />
+              ? <ActivityIndicator size="small" color={Colors.primary} />
+              : <Ionicons name="search" size={18} color={canSearch ? Colors.primary : Colors.textTertiary} />
             }
             <Text style={[styles.searchBtnText, !canSearch && styles.searchBtnTextDisabled]}>
               {searching ? 'Buscando...' : 'Buscar viaje'}
@@ -1107,8 +1107,11 @@ const styles = StyleSheet.create({
   timeToggleText: {
     fontSize: Theme.fontSize.sm, fontWeight: '600', color: 'rgba(255,255,255,0.85)',
   },
-  timeToggleTextActive: {
-    color: Colors.secondaryText,
+  timeToggleTextActiveAhora: {
+    color: Colors.primary,
+  },
+  timeToggleTextActiveLater: {
+    color: Colors.white,
   },
   timePickerWrap: {
     backgroundColor: Colors.white, borderRadius: Theme.radius.xl,
@@ -1119,7 +1122,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary, borderRadius: Theme.radius.full,
     marginBottom: 10,
   },
-  timePickerDoneText: { color: Colors.secondaryText, fontWeight: '700' },
+  timePickerDoneText: { color: Colors.primary, fontWeight: '700' },
 
   // Search button
   searchBtn: {
@@ -1136,7 +1139,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.25)',
   },
   searchBtnText: {
-    color: Colors.secondaryText,
+    color: Colors.primary,
     fontSize: Theme.fontSize.base,
     fontWeight: Theme.fontWeight.bold,
   },
