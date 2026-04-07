@@ -1,58 +1,86 @@
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../constants/colors';
+import Onboarding from '../components/Onboarding';
+
+const ONBOARDING_KEY = 'dulce_viaje_onboarding_done';
 
 export default function RootLayout() {
+  const [ready, setReady] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_KEY).then((val) => {
+      setShowOnboarding(val !== 'true');
+      setReady(true);
+    });
+  }, []);
+
+  const finishOnboarding = async () => {
+    await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+    setShowOnboarding(false);
+  };
+
+  // Wait for AsyncStorage check before rendering anything
+  if (!ready) return null;
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="light" backgroundColor={Colors.primary} />
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="stop/[id]"
-            options={{
-              headerStyle: { backgroundColor: Colors.primary },
-              headerTintColor: Colors.white,
-              headerTitleStyle: { fontWeight: '700' },
-              headerBackTitle: '',
-              presentation: 'card',
-            }}
-          />
-          <Stack.Screen
-            name="search"
-            options={{
-              headerStyle: { backgroundColor: Colors.primary },
-              headerTintColor: Colors.white,
-              headerTitleStyle: { fontWeight: '700' },
-              headerBackTitle: '',
-              presentation: 'modal',
-              title: 'Buscar parada',
-            }}
-          />
-          <Stack.Screen
-            name="line/[lineName]"
-            options={{
-              headerStyle: { backgroundColor: Colors.primary },
-              headerTintColor: Colors.white,
-              headerTitleStyle: { fontWeight: '700' },
-              headerBackTitle: '',
-              presentation: 'card',
-            }}
-          />
-          <Stack.Screen
-            name="trip/[id]"
-            options={{
-              headerStyle: { backgroundColor: Colors.primary },
-              headerTintColor: Colors.white,
-              headerTitleStyle: { fontWeight: '700' },
-              headerBackTitle: '',
-              presentation: 'card',
-            }}
-          />
-        </Stack>
+        <StatusBar style={showOnboarding ? 'dark' : 'light'} backgroundColor={showOnboarding ? '#EBF4FF' : Colors.primary} />
+
+        {showOnboarding ? (
+          <Onboarding onDone={finishOnboarding} />
+        ) : (
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="stop/[id]"
+              options={{
+                headerStyle: { backgroundColor: Colors.primary },
+                headerTintColor: Colors.white,
+                headerTitleStyle: { fontWeight: '700' },
+                headerBackTitle: '',
+                presentation: 'card',
+              }}
+            />
+            <Stack.Screen
+              name="search"
+              options={{
+                headerStyle: { backgroundColor: Colors.primary },
+                headerTintColor: Colors.white,
+                headerTitleStyle: { fontWeight: '700' },
+                headerBackTitle: '',
+                presentation: 'modal',
+                title: 'Buscar parada',
+              }}
+            />
+            <Stack.Screen
+              name="line/[lineName]"
+              options={{
+                headerStyle: { backgroundColor: Colors.primary },
+                headerTintColor: Colors.white,
+                headerTitleStyle: { fontWeight: '700' },
+                headerBackTitle: '',
+                presentation: 'card',
+              }}
+            />
+            <Stack.Screen
+              name="trip/[id]"
+              options={{
+                headerStyle: { backgroundColor: Colors.primary },
+                headerTintColor: Colors.white,
+                headerTitleStyle: { fontWeight: '700' },
+                headerBackTitle: '',
+                presentation: 'card',
+              }}
+            />
+          </Stack>
+        )}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
