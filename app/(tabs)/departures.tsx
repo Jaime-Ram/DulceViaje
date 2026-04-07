@@ -313,7 +313,7 @@ function LiveBusView({
       ) : (
         <FlatList
           data={buses}
-          keyExtractor={(b) => b.busId}
+          keyExtractor={(b, i) => `${b.busId}-${b.lineVariantId}-${i}`}
           contentContainerStyle={{ paddingBottom: 40, paddingTop: 4 }}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
           renderItem={({ item }) => {
