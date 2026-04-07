@@ -85,19 +85,40 @@ export default function LineDetailScreen() {
     }
   }, [lineName]);
 
-  // Load stops from local GTFS data once
+  // Load stops from local GTFS data and sort with nearest-neighbor for polyline
   useEffect(() => {
-    const stops = getStopsForLine(lineName);
-    setLineStops(stops);
-    // Fit map to all stops after load
-    if (stops.length > 0 && mapRef.current) {
-      setTimeout(() => {
-        mapRef.current?.fitToCoordinates(
-          stops.map((s) => ({ latitude: s.lat, longitude: s.lon })),
-          { edgePadding: { top: 100, right: 40, bottom: 200, left: 40 }, animated: true }
-        );
-      }, 500);
+    const raw = getStopsForLine(lineName);
+    if (raw.length === 0) return;
+
+    // Nearest-neighbor sort: start from northernmost stop, greedily pick closest unvisited
+    const sorted: LineStop[] = [];
+    const remaining = [...raw];
+    // Start from the northernmost (highest lat)
+    let current = remaining.splice(
+      remaining.reduce((bi, s, i) => (s.lat > remaining[bi].lat ? i : bi), 0),
+      1
+    )[0];
+    sorted.push(current);
+    while (remaining.length > 0) {
+      let closestIdx = 0;
+      let closestDist = Infinity;
+      for (let i = 0; i < remaining.length; i++) {
+        const dx = remaining[i].lat - current.lat;
+        const dy = remaining[i].lon - current.lon;
+        const d = dx * dx + dy * dy;
+        if (d < closestDist) { closestDist = d; closestIdx = i; }
+      }
+      current = remaining.splice(closestIdx, 1)[0];
+      sorted.push(current);
     }
+
+    setLineStops(sorted);
+    setTimeout(() => {
+      mapRef.current?.fitToCoordinates(
+        sorted.map((s) => ({ latitude: s.lat, longitude: s.lon })),
+        { edgePadding: { top: 100, right: 40, bottom: 200, left: 40 }, animated: true }
+      );
+    }, 500);
   }, [lineName]);
 
   useEffect(() => {
@@ -130,6 +151,16 @@ export default function LineDetailScreen() {
         showsCompass={false}
         toolbarEnabled={false}
       >
+        {/* Route polyline */}
+        {lineStops.length > 1 && (
+          <Polyline
+            coordinates={lineStops.map((s) => ({ latitude: s.lat, longitude: s.lon }))}
+            strokeColor={color}
+            strokeWidth={3}
+            lineDashPattern={[]}
+          />
+        )}
+
         {/* Stop markers */}
         {lineStops.map((stop) => (
           <Marker
@@ -151,7 +182,7 @@ export default function LineDetailScreen() {
               anchor={{ x: 0.5, y: 0.5 }}
             >
               <View style={[styles.busMarker, { backgroundColor: color }]}>
-                <Text style={styles.busMarkerText}>{bus.busId.slice(-4)}</Text>
+                <Text style={styles.busMarkerText}>{lineName}</Text>
               </View>
             </Marker>
           ) : null

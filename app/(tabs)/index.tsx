@@ -691,20 +691,15 @@ export default function HomeScreen() {
           {/* From/To card */}
           <View style={styles.planCard}>
             {/* FROM field */}
-            <TouchableOpacity onPress={() => setPickingField('from')} activeOpacity={0.8}>
-              <View style={styles.planField}>
-                <View style={[styles.planDot, { backgroundColor: Colors.primary }]} />
-                <Text
-                  style={[styles.planFieldText, !fromLocation && styles.planFieldPlaceholder]}
-                  numberOfLines={1}
-                >
-                  {fromLocation ? fromLocation.name : '¿Desde dónde?'}
-                </Text>
-              </View>
+            <TouchableOpacity onPress={() => setPickingField('from')} activeOpacity={0.8} style={styles.planRow}>
+              <View style={styles.planDot} />
+              <Text style={[styles.planFieldText, !fromLocation && styles.planFieldPlaceholder]} numberOfLines={1}>
+                {fromLocation ? fromLocation.name : '¿Desde dónde?'}
+              </Text>
             </TouchableOpacity>
 
-            {/* Divider + swap button */}
-            <View style={styles.planDividerRow}>
+            {/* Divider line with swap button absolutely centered */}
+            <View style={styles.planDivider}>
               <View style={styles.planDividerLine} />
               <TouchableOpacity style={styles.swapBtn} onPress={swapLocations} activeOpacity={0.8}>
                 <Ionicons name="swap-vertical" size={18} color={Colors.primary} />
@@ -712,16 +707,11 @@ export default function HomeScreen() {
             </View>
 
             {/* TO field */}
-            <TouchableOpacity onPress={() => setPickingField('to')} activeOpacity={0.8}>
-              <View style={styles.planField}>
-                <Ionicons name="location" size={16} color={Colors.secondary} />
-                <Text
-                  style={[styles.planFieldText, !toLocation && styles.planFieldPlaceholder]}
-                  numberOfLines={1}
-                >
-                  {toLocation ? toLocation.name : '¿A dónde vas?'}
-                </Text>
-              </View>
+            <TouchableOpacity onPress={() => setPickingField('to')} activeOpacity={0.8} style={styles.planRow}>
+              <Ionicons name="location" size={16} color={Colors.secondary} />
+              <Text style={[styles.planFieldText, !toLocation && styles.planFieldPlaceholder]} numberOfLines={1}>
+                {toLocation ? toLocation.name : '¿A dónde vas?'}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -1062,21 +1052,21 @@ const styles = StyleSheet.create({
   planCard: {
     backgroundColor: Colors.white,
     borderRadius: Theme.radius.xl,
-    overflow: 'hidden',
     ...Theme.shadow.md,
   },
-  planField: {
+  planRow: {
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Theme.spacing.base,
-    paddingTop: 15,
-    paddingBottom: 15,
-    gap: Theme.spacing.sm,
+    paddingHorizontal: 16,
+    gap: 10,
   },
   planDot: {
     width: 10,
     height: 10,
-    borderRadius: Theme.radius.full,
+    borderRadius: 5,
+    backgroundColor: Colors.primary,
+    flexShrink: 0,
   },
   planFieldText: {
     flex: 1,
@@ -1088,25 +1078,30 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     fontWeight: Theme.fontWeight.regular,
   },
-  planDividerRow: {
+  planDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginLeft: 36,
+    marginRight: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingRight: Theme.spacing.sm,
+    justifyContent: 'flex-end',
   },
   planDividerLine: {
     flex: 1,
     height: 1,
     backgroundColor: Colors.border,
-    marginLeft: Theme.spacing.base + 10 + Theme.spacing.sm, // align after dot
   },
   swapBtn: {
     width: 36,
     height: 36,
-    borderRadius: Theme.radius.full,
+    borderRadius: 18,
     backgroundColor: Colors.primarySurface,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: Theme.spacing.sm,
+    marginTop: -18,
+    marginBottom: -18,
+    marginRight: 8,
   },
 
   // Departure time toggle
