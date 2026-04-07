@@ -5,7 +5,7 @@ export function formatEta(etaMinutes: number): string {
 }
 
 export function formatTime(date: Date): string {
-  return date.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 export function formatDate(date: Date): string {

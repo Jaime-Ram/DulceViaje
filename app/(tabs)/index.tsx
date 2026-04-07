@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Image,
   Keyboard,
   Modal,
   Platform,
@@ -526,66 +527,62 @@ function JourneyResultCard({
       {featured && <View style={styles.nsAccentBar} />}
 
       <View style={styles.nsJourneyContent}>
-        {/* Times + bookmark */}
-        <View style={styles.nsTimesRow}>
-          <Text style={styles.nsTimes}>
-            {formatTime(new Date(journey.departureTime))}
-            <Text style={styles.nsTimeDash}> – </Text>
-            {formatTime(new Date(journey.arrivalTime))}
-          </Text>
-          <TouchableOpacity onPress={onSave} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Ionicons
-              name={saved ? 'bookmark' : 'bookmark-outline'}
-              size={20}
-              color={saved ? Colors.secondary : Colors.textTertiary}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Stats row: duration, transfers, wheelchair */}
-        <View style={styles.nsStatsRow}>
-          <View style={styles.nsStat}>
-            <Ionicons name="time-outline" size={13} color={Colors.textSecondary} />
-            <Text style={styles.nsStatText}>{formatDuration(journey.duration)}</Text>
-          </View>
-          <View style={styles.nsStat}>
-            <Ionicons name="git-branch-outline" size={13} color={Colors.textSecondary} />
-            <Text style={styles.nsStatText}>
-              {journey.transfers}x
+        <View style={styles.nsJourneyMain}>
+          {/* LEFT: times + bus line */}
+          <View style={styles.nsJourneyLeft}>
+            <Text style={styles.nsTimes}>
+              {formatTime(new Date(journey.departureTime))}
+              <Text style={styles.nsTimeDash}> – </Text>
+              {formatTime(new Date(journey.arrivalTime))}
             </Text>
+            <View style={styles.nsBusRow}>
+              {busLegs.map((leg, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <Ionicons name="chevron-forward" size={11} color={Colors.textTertiary} />}
+                  <View style={[styles.nsBusBadge, { backgroundColor: leg.line?.color ?? Colors.primary }]}>
+                    <Text style={styles.nsBusBadgeText}>{leg.line?.shortName}</Text>
+                  </View>
+                  <Text style={styles.nsBusHeadsign} numberOfLines={1}>
+                    {leg.headsign}
+                  </Text>
+                </React.Fragment>
+              ))}
+            </View>
           </View>
-          {wheelchairStatus === true && (
-            <View style={styles.nsStat}>
-              <Ionicons name="accessibility" size={13} color="#38A169" />
-            </View>
-          )}
-          {wheelchairStatus === false && (
-            <View style={styles.nsStat}>
-              <Ionicons name="accessibility" size={13} color={Colors.error} />
-              <Text style={[styles.nsStatText, { color: Colors.error }]}>?</Text>
-            </View>
-          )}
-          {wheelchairStatus === null && (
-            <View style={styles.nsStat}>
-              <Ionicons name="accessibility-outline" size={13} color={Colors.textTertiary} />
-              <Text style={[styles.nsStatText, { color: Colors.textTertiary }]}>?</Text>
-            </View>
-          )}
-        </View>
 
-        {/* Bus lines row */}
-        <View style={styles.nsBusRow}>
-          {busLegs.map((leg, i) => (
-            <React.Fragment key={i}>
-              {i > 0 && <Ionicons name="chevron-forward" size={12} color={Colors.textTertiary} />}
-              <View style={[styles.nsBusBadge, { backgroundColor: leg.line?.color ?? Colors.primary }]}>
-                <Text style={styles.nsBusBadgeText}>{leg.line?.shortName}</Text>
+          {/* RIGHT: stats column + bookmark */}
+          <View style={styles.nsJourneyRight}>
+            <View style={styles.nsStatRight}>
+              <Ionicons name="time-outline" size={13} color={Colors.textSecondary} />
+              <Text style={styles.nsStatText}>{formatDuration(journey.duration)}</Text>
+            </View>
+            <View style={styles.nsStatRight}>
+              <Ionicons name="git-branch-outline" size={13} color={Colors.textSecondary} />
+              <Text style={styles.nsStatText}>{journey.transfers}x</Text>
+            </View>
+            {wheelchairStatus === true && (
+              <View style={styles.nsStatRight}>
+                <Ionicons name="accessibility" size={13} color="#38A169" />
               </View>
-              <Text style={styles.nsBusHeadsign} numberOfLines={1}>
-                {leg.headsign}
-              </Text>
-            </React.Fragment>
-          ))}
+            )}
+            {wheelchairStatus === false && (
+              <View style={styles.nsStatRight}>
+                <Ionicons name="accessibility" size={13} color={Colors.error} />
+              </View>
+            )}
+            {wheelchairStatus === null && (
+              <View style={styles.nsStatRight}>
+                <Ionicons name="accessibility-outline" size={13} color={Colors.textTertiary} />
+              </View>
+            )}
+            <TouchableOpacity onPress={onSave} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ marginTop: 6 }}>
+              <Ionicons
+                name={saved ? 'bookmark' : 'bookmark-outline'}
+                size={18}
+                color={saved ? Colors.secondary : Colors.textTertiary}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -685,7 +682,10 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.headerSafe} edges={['top']}>
         <View style={styles.headerInner}>
           {/* App title */}
-          <Text style={styles.appTitle}>Bondivideo</Text>
+          <View style={styles.appTitleRow}>
+            <Image source={require('../../assets/icon.png')} style={styles.appLogo} />
+            <Text style={styles.appTitle}>Bondivideo</Text>
+          </View>
 
           {/* From/To card */}
           <View style={styles.planCard}>
@@ -725,7 +725,7 @@ export default function HomeScreen() {
               onPress={() => setPickingField('to')}
               activeOpacity={0.8}
             >
-              <Ionicons name="location" size={16} color={Colors.error} />
+              <Ionicons name="location" size={16} color={Colors.secondary} />
               <Text
                 style={[
                   styles.planFieldText,
@@ -1032,12 +1032,23 @@ const styles = StyleSheet.create({
     paddingBottom: Theme.spacing.lg,
     gap: Theme.spacing.md,
   },
+  appTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.sm,
+    marginTop: Theme.spacing.sm,
+    paddingLeft: 4,
+  },
+  appLogo: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+  },
   appTitle: {
     color: Colors.white,
-    fontSize: Theme.fontSize.md,
-    fontWeight: Theme.fontWeight.bold,
-    marginTop: Theme.spacing.sm,
-    letterSpacing: 0.3,
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
 
   // From/To card
@@ -1051,9 +1062,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Theme.spacing.base,
-    paddingVertical: 10,
+    paddingVertical: 13,
     gap: Theme.spacing.sm,
-    minHeight: 44,
+    height: 50,
   },
   planDot: {
     width: 10,
@@ -1358,16 +1369,25 @@ const styles = StyleSheet.create({
     width: 4, backgroundColor: Colors.primary,
   },
   nsJourneyContent: {
-    flex: 1, paddingHorizontal: Theme.spacing.base, paddingVertical: 14, gap: 6,
+    flex: 1, paddingHorizontal: Theme.spacing.base, paddingVertical: 14,
   },
-  nsTimesRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  nsJourneyMain: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+  },
+  nsJourneyLeft: {
+    flex: 1, gap: 6,
+  },
+  nsJourneyRight: {
+    alignItems: 'flex-end', gap: 3, minWidth: 60,
+  },
+  nsStatRight: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
   },
   nsTimes: {
-    fontSize: 20, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -0.3,
+    fontSize: 17, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -0.2,
   },
   nsTimeDash: {
-    fontSize: 18, fontWeight: '400', color: Colors.textSecondary,
+    fontSize: 15, fontWeight: '400', color: Colors.textSecondary,
   },
   nsStatsRow: {
     flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.base,
@@ -1379,7 +1399,7 @@ const styles = StyleSheet.create({
     fontSize: Theme.fontSize.sm, color: Colors.textSecondary, fontWeight: '500',
   },
   nsBusRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+    flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap',
   },
   nsBusBadge: {
     borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
