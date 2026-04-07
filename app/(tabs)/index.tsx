@@ -501,59 +501,92 @@ function generateJourneys(from: Location, to: Location, baseTime: Date = new Dat
   return results.slice(0, 3);
 }
 
-function WheelchairBadge({ accessible }: { accessible: boolean | null | undefined }) {
-  if (accessible === true) return <Ionicons name="accessibility" size={14} color="#38A169" />;
-  if (accessible === false) return <Ionicons name="accessibility" size={14} color={Colors.error} />;
-  return null; // unknown — don't show
-}
-
-function JourneyResultCard({ journey, onPress, onSave, saved }: {
+// ── NS-style journey row ─────────────────────────────────────────────────────
+function JourneyResultCard({
+  journey, onPress, onSave, saved, featured,
+}: {
   journey: Journey;
   onPress: () => void;
   onSave: () => void;
   saved: boolean;
+  featured?: boolean;
 }) {
   const busLegs = journey.legs.filter((l) => l.type === 'bus');
-  const walkLegs = journey.legs.filter((l) => l.type === 'walk');
-  const totalWalk = walkLegs.reduce((s, l) => s + l.duration, 0);
   const allAccessible = busLegs.length > 0 && busLegs.every((l) => l.wheelchairAccessible === true);
   const someNotAccessible = busLegs.some((l) => l.wheelchairAccessible === false);
   const wheelchairStatus: boolean | null = someNotAccessible ? false : allAccessible ? true : null;
 
   return (
-    <TouchableOpacity style={styles.journeyCard} onPress={onPress} activeOpacity={0.75}>
-      <View style={styles.journeyHeader}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.journeyTimes}>
-            {formatTime(new Date(journey.departureTime))} → {formatTime(new Date(journey.arrivalTime))}
+    <TouchableOpacity
+      style={[styles.nsJourneyRow, featured && styles.nsJourneyRowFeatured]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      {/* Left accent bar on featured */}
+      {featured && <View style={styles.nsAccentBar} />}
+
+      <View style={styles.nsJourneyContent}>
+        {/* Times + bookmark */}
+        <View style={styles.nsTimesRow}>
+          <Text style={styles.nsTimes}>
+            {formatTime(new Date(journey.departureTime))}
+            <Text style={styles.nsTimeDash}> – </Text>
+            {formatTime(new Date(journey.arrivalTime))}
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
-            <Text style={styles.journeyMeta}>
-              {formatDuration(journey.duration)}
-              {journey.transfers > 0 ? ` · ${journey.transfers} transbordo${journey.transfers > 1 ? 's' : ''}` : ' · Directo'}
-              {totalWalk > 0 ? ` · ${totalWalk} min a pie` : ''}
-            </Text>
-            <WheelchairBadge accessible={wheelchairStatus} />
-          </View>
+          <TouchableOpacity onPress={onSave} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Ionicons
+              name={saved ? 'bookmark' : 'bookmark-outline'}
+              size={20}
+              color={saved ? Colors.secondary : Colors.textTertiary}
+            />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={onSave} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color={Colors.primary} />
-        </TouchableOpacity>
-      </View>
-      {/* Leg visual */}
-      <View style={styles.legRow}>
-        {journey.legs.map((leg, i) => (
-          <React.Fragment key={i}>
-            {leg.type === 'walk'
-              ? <View style={styles.legWalk}><Ionicons name="walk" size={12} color={Colors.textSecondary} /></View>
-              : <View style={[styles.legBus, { backgroundColor: leg.line?.color ?? Colors.primary }]}>
-                  <Text style={styles.legBusText}>{leg.line?.shortName}</Text>
-                  {leg.wheelchairAccessible === true && <Ionicons name="accessibility" size={9} color="rgba(255,255,255,0.9)" />}
-                </View>
-            }
-          </React.Fragment>
-        ))}
-        <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} style={{ marginLeft: 'auto' }} />
+
+        {/* Stats row: duration, transfers, wheelchair */}
+        <View style={styles.nsStatsRow}>
+          <View style={styles.nsStat}>
+            <Ionicons name="time-outline" size={13} color={Colors.textSecondary} />
+            <Text style={styles.nsStatText}>{formatDuration(journey.duration)}</Text>
+          </View>
+          <View style={styles.nsStat}>
+            <Ionicons name="git-branch-outline" size={13} color={Colors.textSecondary} />
+            <Text style={styles.nsStatText}>
+              {journey.transfers}x
+            </Text>
+          </View>
+          {wheelchairStatus === true && (
+            <View style={styles.nsStat}>
+              <Ionicons name="accessibility" size={13} color="#38A169" />
+            </View>
+          )}
+          {wheelchairStatus === false && (
+            <View style={styles.nsStat}>
+              <Ionicons name="accessibility" size={13} color={Colors.error} />
+              <Text style={[styles.nsStatText, { color: Colors.error }]}>?</Text>
+            </View>
+          )}
+          {wheelchairStatus === null && (
+            <View style={styles.nsStat}>
+              <Ionicons name="accessibility-outline" size={13} color={Colors.textTertiary} />
+              <Text style={[styles.nsStatText, { color: Colors.textTertiary }]}>?</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Bus lines row */}
+        <View style={styles.nsBusRow}>
+          {busLegs.map((leg, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <Ionicons name="chevron-forward" size={12} color={Colors.textTertiary} />}
+              <View style={[styles.nsBusBadge, { backgroundColor: leg.line?.color ?? Colors.primary }]}>
+                <Text style={styles.nsBusBadgeText}>{leg.line?.shortName}</Text>
+              </View>
+              <Text style={styles.nsBusHeadsign} numberOfLines={1}>
+                {leg.headsign}
+              </Text>
+            </React.Fragment>
+          ))}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -583,6 +616,7 @@ export default function HomeScreen() {
   const [pickingField, setPickingField] = useState<PickingField>(null);
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [searching, setSearching] = useState(false);
+  const [timeOffsetMin, setTimeOffsetMin] = useState(0); // for Earlier/Later navigation
 
   // Departure time state
   const [isNow, setIsNow] = useState(true);
@@ -608,17 +642,35 @@ export default function HomeScreen() {
     [pickingField, setFrom, setTo, addRecentLocation]
   );
 
-  const handleSearch = useCallback(async () => {
+  const runSearch = useCallback(async (offsetMin: number) => {
     if (!fromLocation || !toLocation) return;
     setSearching(true);
-    setJourneys([]);
     await new Promise((r) => setTimeout(r, 50));
     const base = isNow ? new Date() : departureTime;
-    const results = generateJourneys(fromLocation, toLocation, base);
+    const shifted = new Date(base.getTime() + offsetMin * 60000);
+    const results = generateJourneys(fromLocation, toLocation, shifted);
     results.forEach((j) => addRecentJourney(j));
     setJourneys(results);
     setSearching(false);
   }, [fromLocation, toLocation, addRecentJourney, isNow, departureTime]);
+
+  const handleSearch = useCallback(async () => {
+    setTimeOffsetMin(0);
+    setJourneys([]);
+    await runSearch(0);
+  }, [runSearch]);
+
+  const handleEarlier = useCallback(async () => {
+    const next = timeOffsetMin - 30;
+    setTimeOffsetMin(next);
+    await runSearch(next);
+  }, [timeOffsetMin, runSearch]);
+
+  const handleLater = useCallback(async () => {
+    const next = timeOffsetMin + 30;
+    setTimeOffsetMin(next);
+    await runSearch(next);
+  }, [timeOffsetMin, runSearch]);
 
   const handleJourneyPress = useCallback((journey: Journey) => {
     setSelectedJourney(journey);
@@ -816,24 +868,54 @@ export default function HomeScreen() {
           );
         })()}
 
-        {/* Journey results */}
-        {journeys.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Opciones de viaje</Text>
-              <TouchableOpacity onPress={() => { setJourneys([]); }}>
-                <Text style={styles.seeAll}>Limpiar</Text>
-              </TouchableOpacity>
-            </View>
-            {journeys.map((j) => (
-              <JourneyResultCard
-                key={j.id}
-                journey={j}
-                onPress={() => handleJourneyPress(j)}
-                onSave={() => isJourneySaved(j.id) ? unsaveJourney(j.id) : saveJourney(j)}
-                saved={isJourneySaved(j.id)}
-              />
-            ))}
+        {/* NS-style journey results list */}
+        {(journeys.length > 0 || searching) && (
+          <View style={styles.nsResultsCard}>
+            {/* Anteriores button */}
+            <TouchableOpacity
+              style={styles.nsNavBtn}
+              onPress={handleEarlier}
+              disabled={searching}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-up" size={16} color={Colors.primary} />
+              <Text style={styles.nsNavBtnText}>Anteriores</Text>
+            </TouchableOpacity>
+
+            <View style={styles.nsResultsDivider} />
+
+            {searching ? (
+              <View style={styles.nsLoadingRow}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.nsLoadingText}>Buscando viajes...</Text>
+              </View>
+            ) : (
+              journeys.map((j, idx) => (
+                <React.Fragment key={j.id}>
+                  <JourneyResultCard
+                    journey={j}
+                    onPress={() => handleJourneyPress(j)}
+                    onSave={() => isJourneySaved(j.id) ? unsaveJourney(j.id) : saveJourney(j)}
+                    saved={isJourneySaved(j.id)}
+                    featured={idx === 0}
+                  />
+                  {idx < journeys.length - 1 && <View style={styles.nsResultsDivider} />}
+                </React.Fragment>
+              ))
+            )}
+
+            <View style={styles.nsResultsDivider} />
+
+            {/* Siguientes button */}
+            <TouchableOpacity
+              style={styles.nsNavBtn}
+              onPress={handleLater}
+              disabled={searching}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.nsNavBtnText}>Siguientes</Text>
+              <Ionicons name="chevron-down" size={16} color={Colors.primary} />
+            </TouchableOpacity>
           </View>
         )}
 
@@ -1240,56 +1322,70 @@ const styles = StyleSheet.create({
     paddingHorizontal: Theme.spacing.base, paddingTop: Theme.spacing.base, paddingBottom: 4,
   },
 
-  // ── Journey result cards ─────────────────────────────────────────────────
-  journeyCard: {
+  // ── NS-style journey results ─────────────────────────────────────────────
+  nsResultsCard: {
     backgroundColor: Colors.white,
     marginHorizontal: Theme.spacing.base,
-    marginBottom: Theme.spacing.sm,
+    marginBottom: Theme.spacing.base,
     borderRadius: Theme.radius.xl,
-    padding: Theme.spacing.base,
-    ...Theme.shadow.sm,
+    overflow: 'hidden',
+    ...Theme.shadow.md,
   },
-  journeyHeader: {
+  nsNavBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 12,
+  },
+  nsNavBtnText: {
+    fontSize: Theme.fontSize.sm, fontWeight: '600', color: Colors.primary,
+  },
+  nsResultsDivider: { height: 1, backgroundColor: Colors.border },
+  nsLoadingRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 10, paddingVertical: 28,
+  },
+  nsLoadingText: { fontSize: Theme.fontSize.sm, color: Colors.textSecondary },
+  nsJourneyRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Theme.spacing.sm,
+    backgroundColor: Colors.white,
   },
-  journeyTimes: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: Theme.fontWeight.bold,
-    color: Colors.textPrimary,
+  nsJourneyRowFeatured: {
+    backgroundColor: Colors.primarySurface,
   },
-  journeyMeta: {
-    fontSize: Theme.fontSize.xs,
-    color: Colors.textSecondary,
-    marginTop: 3,
+  nsAccentBar: {
+    width: 4, backgroundColor: Colors.primary,
   },
-  legRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Theme.spacing.sm,
-    marginTop: Theme.spacing.sm,
+  nsJourneyContent: {
+    flex: 1, paddingHorizontal: Theme.spacing.base, paddingVertical: 14, gap: 6,
   },
-  legWalk: {
-    width: 28, height: 28,
-    borderRadius: Theme.radius.full,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
+  nsTimesRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  legBus: {
-    borderRadius: Theme.radius.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  nsTimes: {
+    fontSize: 20, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -0.3,
   },
-  legBusText: {
-    color: Colors.white,
-    fontSize: Theme.fontSize.xs,
-    fontWeight: Theme.fontWeight.bold,
+  nsTimeDash: {
+    fontSize: 18, fontWeight: '400', color: Colors.textSecondary,
+  },
+  nsStatsRow: {
+    flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.base,
+  },
+  nsStat: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+  },
+  nsStatText: {
+    fontSize: Theme.fontSize.sm, color: Colors.textSecondary, fontWeight: '500',
+  },
+  nsBusRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+  },
+  nsBusBadge: {
+    borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
+  },
+  nsBusBadgeText: {
+    color: Colors.white, fontSize: Theme.fontSize.sm, fontWeight: '800',
+  },
+  nsBusHeadsign: {
+    fontSize: Theme.fontSize.sm, color: Colors.textSecondary, flex: 1,
   },
 
   // ── Modal ────────────────────────────────────────────────────────────────
