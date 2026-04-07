@@ -744,7 +744,7 @@ export default function HomeScreen() {
               style={[styles.timeToggleBtn, isNow && styles.timeToggleBtnActive]}
               onPress={() => { setIsNow(true); setShowTimePicker(false); }}
             >
-              <Ionicons name="time" size={14} color={isNow ? Colors.primary : Colors.textSecondary} />
+              <Ionicons name="time" size={14} color={Colors.white} />
               <Text style={[styles.timeToggleText, isNow && styles.timeToggleTextActiveAhora]}>Ahora</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -793,8 +793,8 @@ export default function HomeScreen() {
             disabled={!canSearch || searching}
           >
             {searching
-              ? <ActivityIndicator size="small" color={Colors.primary} />
-              : <Ionicons name="search" size={18} color={canSearch ? Colors.primary : Colors.textTertiary} />
+              ? <ActivityIndicator size="small" color={Colors.white} />
+              : <Ionicons name="search" size={18} color={canSearch ? Colors.white : Colors.textTertiary} />
             }
             <Text style={[styles.searchBtnText, !canSearch && styles.searchBtnTextDisabled]}>
               {searching ? 'Buscando...' : 'Buscar viaje'}
@@ -1108,7 +1108,7 @@ const styles = StyleSheet.create({
     fontSize: Theme.fontSize.sm, fontWeight: '600', color: 'rgba(255,255,255,0.85)',
   },
   timeToggleTextActiveAhora: {
-    color: Colors.primary,
+    color: Colors.white,
   },
   timeToggleTextActiveLater: {
     color: Colors.white,
@@ -1122,7 +1122,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary, borderRadius: Theme.radius.full,
     marginBottom: 10,
   },
-  timePickerDoneText: { color: Colors.primary, fontWeight: '700' },
+  timePickerDoneText: { color: Colors.white, fontWeight: '700' },
 
   // Search button
   searchBtn: {
@@ -1139,7 +1139,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.25)',
   },
   searchBtnText: {
-    color: Colors.primary,
+    color: Colors.white,
     fontSize: Theme.fontSize.base,
     fontWeight: Theme.fontWeight.bold,
   },

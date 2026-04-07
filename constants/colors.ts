@@ -5,11 +5,11 @@ export const Colors = {
   primaryLight: '#3380CC',
   primarySurface: '#E8F0FA',
 
-  // Secondary — Uruguay yellow
-  secondary: '#F5C800',
-  secondaryDark: '#C9A200',
-  secondaryLight: '#FFF8D6',
-  secondaryText: '#7A5F00',
+  // Secondary — Uruguay celeste
+  secondary: '#61B8E8',
+  secondaryDark: '#3A9FD4',
+  secondaryLight: '#DEEEF9',
+  secondaryText: '#FFFFFF',
 
   // Background & surfaces
   background: '#FFFFFF',
