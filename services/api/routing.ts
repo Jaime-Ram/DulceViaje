@@ -8,7 +8,7 @@ export interface RouteCoord {
 }
 
 async function fetchOSRMRoute(
-  profile: 'driving',
+  profile: 'foot' | 'driving',
   from: { latitude: number; longitude: number },
   to: { latitude: number; longitude: number }
 ): Promise<RouteCoord[]> {
@@ -47,12 +47,12 @@ function fallback(
   ];
 }
 
-// Walking doesn't follow one-way rules — straight line is accurate enough
+// Walking follows streets but ignores one-way restrictions (foot profile)
 export function getWalkingRoute(
   from: { latitude: number; longitude: number },
   to: { latitude: number; longitude: number }
 ): Promise<RouteCoord[]> {
-  return Promise.resolve(fallback(from, to));
+  return fetchOSRMRoute('foot', from, to);
 }
 
 // Buses must follow street direction — use OSRM driving profile
