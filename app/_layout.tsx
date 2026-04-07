@@ -4,18 +4,12 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Text, TextInput } from 'react-native';
+import { View } from 'react-native';
 import { useFonts, Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import { Colors } from '../constants/colors';
 import Onboarding from '../components/Onboarding';
 
 const ONBOARDING_KEY = 'bondivideo_onboarding_done';
-
-// Apply Nunito as the default font for all Text and TextInput components
-(Text as any).defaultProps = (Text as any).defaultProps || {};
-(Text as any).defaultProps.style = [{ fontFamily: 'Nunito_400Regular' }];
-(TextInput as any).defaultProps = (TextInput as any).defaultProps || {};
-(TextInput as any).defaultProps.style = [{ fontFamily: 'Nunito_400Regular' }];
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
@@ -40,8 +34,10 @@ export default function RootLayout() {
     setShowOnboarding(false);
   };
 
-  // Wait for fonts and AsyncStorage check before rendering anything
-  if (!ready || !fontsLoaded) return null;
+  // Show blank blue screen while loading (never hangs on null)
+  if (!ready || !fontsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: Colors.primary }} />;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -58,7 +54,7 @@ export default function RootLayout() {
               options={{
                 headerStyle: { backgroundColor: Colors.primary },
                 headerTintColor: Colors.white,
-                headerTitleStyle: { fontWeight: '700' },
+                headerTitleStyle: { fontWeight: '700', fontFamily: 'Nunito_700Bold' },
                 headerBackTitle: '',
                 presentation: 'card',
               }}
@@ -68,7 +64,7 @@ export default function RootLayout() {
               options={{
                 headerStyle: { backgroundColor: Colors.primary },
                 headerTintColor: Colors.white,
-                headerTitleStyle: { fontWeight: '700' },
+                headerTitleStyle: { fontWeight: '700', fontFamily: 'Nunito_700Bold' },
                 headerBackTitle: '',
                 presentation: 'modal',
                 title: 'Buscar parada',
@@ -79,7 +75,7 @@ export default function RootLayout() {
               options={{
                 headerStyle: { backgroundColor: Colors.primary },
                 headerTintColor: Colors.white,
-                headerTitleStyle: { fontWeight: '700' },
+                headerTitleStyle: { fontWeight: '700', fontFamily: 'Nunito_700Bold' },
                 headerBackTitle: '',
                 presentation: 'card',
               }}
@@ -89,7 +85,7 @@ export default function RootLayout() {
               options={{
                 headerStyle: { backgroundColor: Colors.primary },
                 headerTintColor: Colors.white,
-                headerTitleStyle: { fontWeight: '700' },
+                headerTitleStyle: { fontWeight: '700', fontFamily: 'Nunito_700Bold' },
                 headerBackTitle: '',
                 presentation: 'card',
               }}
