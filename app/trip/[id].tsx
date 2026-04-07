@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { Theme } from '../../constants/theme';
 import { useJourneyStore } from '../../store/useJourneyStore';
 import { formatTime, formatDuration } from '../../utils/time';
 import { Journey, JourneyLeg } from '../../types';
+import { getWalkingRoute, getBusRoute, RouteCoord } from '../../services/api/routing';
 
 // ── Line color hash ──────────────────────────────────────────────────────────
 const PALETTE = ['#E53E3E','#38A169','#D69E2E','#0055B3','#805AD5','#DD6B20','#00897B','#C2185B'];
@@ -90,6 +91,10 @@ export default function TripDetailScreen() {
   const isJourneySaved = useJourneyStore((s) => s.isJourneySaved);
   const mapRef = useRef<MapView>(null);
 
+  // Real street-following routes per leg (fetched from OSRM)
+  const [legRoutes, setLegRoutes] = useState<RouteCoord[][]>([]);
+  const [routesLoading, setRoutesLoading] = useState(false);
+
   const journey = selectedJourney;
   const saved = journey ? isJourneySaved(journey.id) : false;
 
@@ -107,6 +112,22 @@ export default function TripDetailScreen() {
       ),
     });
   }, [journey, saved]);
+
+  // Fetch real routes from OSRM for each leg
+  useEffect(() => {
+    if (!journey) return;
+    setRoutesLoading(true);
+    Promise.all(
+      journey.legs.map((leg) => {
+        const from = { latitude: leg.from.latitude, longitude: leg.from.longitude };
+        const to = { latitude: leg.to.latitude, longitude: leg.to.longitude };
+        return leg.type === 'walk' ? getWalkingRoute(from, to) : getBusRoute(from, to);
+      })
+    ).then((routes) => {
+      setLegRoutes(routes);
+      setRoutesLoading(false);
+    }).catch(() => setRoutesLoading(false));
+  }, [journey?.id]);
 
   if (!journey) {
     return (
@@ -158,17 +179,23 @@ export default function TripDetailScreen() {
           rotateEnabled={false}
           pitchEnabled={false}
         >
-          {/* Polylines per leg */}
+          {/* Polylines per leg — real street-following routes from OSRM */}
           {journey.legs.map((leg, i) => {
             const from = { latitude: leg.from.latitude, longitude: leg.from.longitude };
-            const to = { latitude: leg.to.latitude, longitude: leg.to.longitude };
             if (from.latitude === 0 && from.longitude === 0) return null;
+            // Use real route if available, fall back to straight line
+            const coords: RouteCoord[] = legRoutes[i] && legRoutes[i].length > 1
+              ? legRoutes[i]
+              : [
+                  { latitude: leg.from.latitude, longitude: leg.from.longitude },
+                  { latitude: leg.to.latitude, longitude: leg.to.longitude },
+                ];
             return (
               <Polyline
                 key={i}
-                coordinates={[from, to]}
+                coordinates={coords}
                 strokeColor={leg.type === 'bus' ? (leg.line?.color ?? lineColor(leg.line?.shortName ?? '?')) : Colors.textTertiary}
-                strokeWidth={leg.type === 'bus' ? 4 : 2}
+                strokeWidth={leg.type === 'bus' ? 5 : 3}
                 lineDashPattern={leg.type === 'walk' ? [6, 6] : undefined}
               />
             );
@@ -202,6 +229,14 @@ export default function TripDetailScreen() {
             </Marker>
           )}
         </MapView>
+
+        {/* Route loading indicator */}
+        {routesLoading && (
+          <View style={styles.routeLoadingBadge}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.routeLoadingText}>Cargando ruta...</Text>
+          </View>
+        )}
 
         {/* Expand map button */}
         <TouchableOpacity style={styles.expandMapBtn} onPress={() => mapRef.current?.animateToRegion(mapRegion)}>
@@ -253,6 +288,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.white },
   mapContainer: { height: 220, backgroundColor: Colors.surface },
   map: { flex: 1 },
+  routeLoadingBadge: {
+    position: 'absolute', top: 10, left: 10,
+    backgroundColor: Colors.white, borderRadius: Theme.radius.full,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 6,
+    ...Theme.shadow.sm,
+  },
+  routeLoadingText: { fontSize: Theme.fontSize.xs, color: Colors.textSecondary },
   expandMapBtn: {
     position: 'absolute', bottom: 10, right: 10,
     backgroundColor: Colors.white, borderRadius: Theme.radius.full,
