@@ -1061,10 +1061,10 @@ const styles = StyleSheet.create({
   planField: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: Theme.spacing.base,
-    paddingVertical: 13,
+    height: 52,
     gap: Theme.spacing.sm,
-    height: 50,
   },
   planDot: {
     width: 10,
