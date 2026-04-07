@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Dulce Viaje",
-    "slug": "dulce-viaje",
+    "name": "Bondivideo",
+    "slug": "bondivideo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dulceviaje.app"
+      "bundleIdentifier": "com.bondivideo.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +23,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.dulceviaje.app"
+      "package": "com.bondivideo.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,12 +34,12 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Dulce Viaje uses your location to show nearby bus stops.",
-          "locationWhenInUsePermission": "Dulce Viaje uses your location to show nearby bus stops."
+          "locationAlwaysAndWhenInUsePermission": "Bondivideo uses your location to show nearby bus stops.",
+          "locationWhenInUsePermission": "Bondivideo uses your location to show nearby bus stops."
         }
       ]
     ],
-    "scheme": "dulceviaje",
+    "scheme": "bondivideo",
     "experiments": {
       "typedRoutes": true
     }

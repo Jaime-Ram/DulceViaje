@@ -92,7 +92,7 @@ export const useJourneyStore = create<JourneyState>()(
       clearLocations: () => set({ fromLocation: null, toLocation: null }),
     }),
     {
-      name: 'dulce-viaje-journeys',
+      name: 'bondivideo-journeys',
       storage: createJSONStorage(() => AsyncStorage),
       // Don't persist selectedJourney or ephemeral fields
       partialize: (state) => ({

@@ -62,9 +62,23 @@ function LegRow({ leg, isLast }: { leg: JourneyLeg; isLast: boolean }) {
             <View style={[styles.busBadge, { backgroundColor: color }]}>
               <Text style={styles.busBadgeText}>{leg.line?.shortName}</Text>
             </View>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.legHeadsign}>{leg.headsign}</Text>
-              <Text style={styles.legDur}>{formatDuration(leg.duration)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                <Text style={styles.legDur}>{formatDuration(leg.duration)}</Text>
+                {leg.wheelchairAccessible === true && (
+                  <View style={styles.wheelchairBadge}>
+                    <Ionicons name="accessibility" size={11} color="#38A169" />
+                    <Text style={styles.wheelchairText}>Accesible</Text>
+                  </View>
+                )}
+                {leg.wheelchairAccessible === false && (
+                  <View style={[styles.wheelchairBadge, styles.wheelchairBadgeNo]}>
+                    <Ionicons name="accessibility" size={11} color={Colors.error} />
+                    <Text style={[styles.wheelchairText, { color: Colors.error }]}>No accesible</Text>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
         ) : (
@@ -375,7 +389,13 @@ const styles = StyleSheet.create({
   },
   busBadgeText: { color: Colors.white, fontSize: Theme.fontSize.sm, fontWeight: '800' },
   legHeadsign: { fontSize: Theme.fontSize.base, fontWeight: '600', color: Colors.textPrimary },
-  legDur: { fontSize: Theme.fontSize.xs, color: Colors.textSecondary, marginTop: 2 },
+  legDur: { fontSize: Theme.fontSize.xs, color: Colors.textSecondary },
+  wheelchairBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: '#F0FFF4', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
+  },
+  wheelchairBadgeNo: { backgroundColor: Colors.errorLight },
+  wheelchairText: { fontSize: 10, fontWeight: '600', color: '#38A169' },
   walkDetail: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingVertical: Theme.spacing.sm,

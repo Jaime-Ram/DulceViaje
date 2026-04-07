@@ -60,7 +60,7 @@ export const useFavoritesStore = create<FavoritesState>()(
       },
     }),
     {
-      name: 'dulce-viaje-favorites',
+      name: 'bondivideo-favorites',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

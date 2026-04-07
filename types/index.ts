@@ -77,6 +77,7 @@ export interface JourneyLeg {
   line?: BusLine;
   headsign?: string;
   stopSequence?: BusStop[];
+  wheelchairAccessible?: boolean | null; // null = unknown
 }
 
 // Location

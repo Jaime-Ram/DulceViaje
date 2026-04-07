@@ -27,6 +27,7 @@ import useStops from '../../hooks/useStops';
 import { searchAddress } from '../../services/api/geocoding';
 import { getUpcomingBuses } from '../../services/api/stops';
 import { findNearbyStops, haversineMeters } from '../../services/storage/stopRoutes';
+import { isLineWheelchairAccessible } from '../../services/storage/lineWheelchair';
 import { FavoriteStop, Location, UpcomingBus, Journey, JourneyLeg } from '../../types';
 import { formatTime, formatDuration } from '../../utils/time';
 
@@ -431,6 +432,7 @@ function generateJourneys(from: Location, to: Location, baseTime: Date = new Dat
         to: { name: toStop?.name ?? to.name, latitude: alightCoord.lat, longitude: alightCoord.lon },
         line: { id: lineName, name: `Línea ${lineName}`, shortName: lineName, color },
         headsign: to.name.split(',')[0],
+        wheelchairAccessible: isLineWheelchairAccessible(lineName),
       },
       ...(walkFromStop > 1 ? [{
         type: 'walk' as const, departureTime: alightTime, arrivalTime: arr, duration: walkFromStop,
@@ -460,9 +462,9 @@ function generateJourneys(from: Location, to: Location, baseTime: Date = new Dat
     const t3 = new Date(t2.getTime() + transferWalkMin * 60000);
     const legs: JourneyLeg[] = [
       { type: 'walk', from, to: from, departureTime: dep, arrivalTime: t1, duration: walkMin, distance: 280 },
-      { type: 'bus', from, to: midLoc, departureTime: t1, arrivalTime: t2, duration: leg1Min, line: { id: line1, name: `Línea ${line1}`, shortName: line1, color: lineColor(line1) }, headsign: 'Centro' },
+      { type: 'bus', from, to: midLoc, departureTime: t1, arrivalTime: t2, duration: leg1Min, line: { id: line1, name: `Línea ${line1}`, shortName: line1, color: lineColor(line1) }, headsign: 'Centro', wheelchairAccessible: isLineWheelchairAccessible(line1) },
       { type: 'walk', from: midLoc, to: midLoc, departureTime: t2, arrivalTime: t3, duration: transferWalkMin, distance: 350 },
-      { type: 'bus', from: midLoc, to, departureTime: t3, arrivalTime: arr, duration: leg2Min, line: { id: line2, name: `Línea ${line2}`, shortName: line2, color: lineColor(line2) }, headsign: to.name.split(',')[0] },
+      { type: 'bus', from: midLoc, to, departureTime: t3, arrivalTime: arr, duration: leg2Min, line: { id: line2, name: `Línea ${line2}`, shortName: line2, color: lineColor(line2) }, headsign: to.name.split(',')[0], wheelchairAccessible: isLineWheelchairAccessible(line2) },
     ];
     return { id, from, to, departureTime: dep, arrivalTime: arr, duration: totalMin, transfers: 1, legs };
   };
@@ -499,6 +501,12 @@ function generateJourneys(from: Location, to: Location, baseTime: Date = new Dat
   return results.slice(0, 3);
 }
 
+function WheelchairBadge({ accessible }: { accessible: boolean | null | undefined }) {
+  if (accessible === true) return <Ionicons name="accessibility" size={14} color="#38A169" />;
+  if (accessible === false) return <Ionicons name="accessibility" size={14} color={Colors.error} />;
+  return null; // unknown — don't show
+}
+
 function JourneyResultCard({ journey, onPress, onSave, saved }: {
   journey: Journey;
   onPress: () => void;
@@ -508,18 +516,25 @@ function JourneyResultCard({ journey, onPress, onSave, saved }: {
   const busLegs = journey.legs.filter((l) => l.type === 'bus');
   const walkLegs = journey.legs.filter((l) => l.type === 'walk');
   const totalWalk = walkLegs.reduce((s, l) => s + l.duration, 0);
+  const allAccessible = busLegs.length > 0 && busLegs.every((l) => l.wheelchairAccessible === true);
+  const someNotAccessible = busLegs.some((l) => l.wheelchairAccessible === false);
+  const wheelchairStatus: boolean | null = someNotAccessible ? false : allAccessible ? true : null;
+
   return (
     <TouchableOpacity style={styles.journeyCard} onPress={onPress} activeOpacity={0.75}>
       <View style={styles.journeyHeader}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.journeyTimes}>
             {formatTime(new Date(journey.departureTime))} → {formatTime(new Date(journey.arrivalTime))}
           </Text>
-          <Text style={styles.journeyMeta}>
-            {formatDuration(journey.duration)}
-            {journey.transfers > 0 ? ` · ${journey.transfers} transbordo${journey.transfers > 1 ? 's' : ''}` : ' · Directo'}
-            {totalWalk > 0 ? ` · ${totalWalk} min a pie` : ''}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+            <Text style={styles.journeyMeta}>
+              {formatDuration(journey.duration)}
+              {journey.transfers > 0 ? ` · ${journey.transfers} transbordo${journey.transfers > 1 ? 's' : ''}` : ' · Directo'}
+              {totalWalk > 0 ? ` · ${totalWalk} min a pie` : ''}
+            </Text>
+            <WheelchairBadge accessible={wheelchairStatus} />
+          </View>
         </View>
         <TouchableOpacity onPress={onSave} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color={Colors.primary} />
@@ -533,6 +548,7 @@ function JourneyResultCard({ journey, onPress, onSave, saved }: {
               ? <View style={styles.legWalk}><Ionicons name="walk" size={12} color={Colors.textSecondary} /></View>
               : <View style={[styles.legBus, { backgroundColor: leg.line?.color ?? Colors.primary }]}>
                   <Text style={styles.legBusText}>{leg.line?.shortName}</Text>
+                  {leg.wheelchairAccessible === true && <Ionicons name="accessibility" size={9} color="rgba(255,255,255,0.9)" />}
                 </View>
             }
           </React.Fragment>
@@ -617,7 +633,7 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.headerSafe} edges={['top']}>
         <View style={styles.headerInner}>
           {/* App title */}
-          <Text style={styles.appTitle}>Dulce Viaje</Text>
+          <Text style={styles.appTitle}>Bondivideo</Text>
 
           {/* From/To card */}
           <View style={styles.planCard}>

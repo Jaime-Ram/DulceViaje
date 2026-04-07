@@ -35,7 +35,7 @@ const SLIDES: Slide[] = [
     icon: 'bus',
     iconColor: Colors.white,
     iconBg: Colors.primary,
-    title: 'Bienvenido a\nDulce Viaje',
+    title: 'Bienvenido a\nBondivideo',
     body: 'Tu compañero de transporte en Montevideo. Horarios en tiempo real, planificación de rutas y mucho más — gratis, sin cuenta.',
     nextLabel: 'Comenzar',
   },
@@ -123,7 +123,7 @@ export default function Onboarding({ onDone }: OnboardingProps) {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* App name top bar */}
       <View style={styles.topBar}>
-        <Text style={styles.appName}>Dulce Viaje</Text>
+        <Text style={styles.appName}>Bondivideo</Text>
       </View>
 
       {/* Slides */}

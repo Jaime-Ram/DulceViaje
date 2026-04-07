@@ -229,8 +229,8 @@ export default function ProfileScreen() {
         <View style={styles.sep} />
         <SettingRow
           icon="share-social"
-          label="Compartir Dulce Viaje"
-          onPress={() => Alert.alert('Compartir', 'Dulce Viaje — La mejor app de buses de Montevideo')}
+          label="Compartir Bondivideo"
+          onPress={() => Alert.alert('Compartir', 'Bondivideo — La mejor app de buses de Montevideo')}
         />
         <View style={styles.sep} />
         <SettingRow

@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../constants/colors';
 import Onboarding from '../components/Onboarding';
 
-const ONBOARDING_KEY = 'dulce_viaje_onboarding_done';
+const ONBOARDING_KEY = 'bondivideo_onboarding_done';
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
