@@ -5,6 +5,7 @@ import {
   FlatList,
   Keyboard,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -66,6 +68,7 @@ function LocationSearchModal({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<TextInput>(null);
   const { searchStops } = useStops();
+  const recentLocations = useJourneyStore((s) => s.recentLocations);
 
   // Reset when modal opens
   useEffect(() => {
@@ -167,9 +170,16 @@ function LocationSearchModal({
     [handleMyLocation, onSelect]
   );
 
-  const allItems: SearchResult[] = [{ kind: 'myLocation' }, ...results];
+  const recentItems: SearchResult[] = query.length === 0
+    ? recentLocations.map((l) => ({ kind: 'address' as const, name: l.name, address: l.address, latitude: l.latitude, longitude: l.longitude }))
+    : [];
 
-  const renderItem = ({ item }: { item: SearchResult }) => {
+  const allItems: SearchResult[] = [{ kind: 'myLocation' }, ...recentItems, ...results];
+
+  const renderItem = ({ item, index }: { item: SearchResult; index: number }) => {
+    // Section header for recents
+    const isFirstRecent = query.length === 0 && index === 1 && recentItems.length > 0;
+    const isFirstResult = results.length > 0 && index === 1 + recentItems.length;
     if (item.kind === 'myLocation') {
       return (
         <TouchableOpacity
@@ -199,30 +209,37 @@ function LocationSearchModal({
           </View>
           <View style={styles.resultText}>
             <Text style={styles.resultName}>{item.name}</Text>
-            <Text style={styles.resultSub}>Parada #{item.id}</Text>
+            <Text style={styles.resultSub}>Parada #{(item as any).id}</Text>
           </View>
         </TouchableOpacity>
       );
     }
-    // address
+    // address / recent
+    const isRecent = query.length === 0 && recentItems.some((r) => r.kind === 'address' && r.name === item.name);
     return (
-      <TouchableOpacity
-        style={styles.resultRow}
-        onPress={() => handleSelect(item)}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.resultIcon, { backgroundColor: '#FEE2E2' }]}>
-          <Ionicons name="location" size={18} color={Colors.error} />
-        </View>
-        <View style={styles.resultText}>
-          <Text style={styles.resultName}>{item.name}</Text>
-          {item.address ? (
-            <Text style={styles.resultSub} numberOfLines={1}>
-              {item.address}
-            </Text>
-          ) : null}
-        </View>
-      </TouchableOpacity>
+      <>
+        {isFirstRecent && index === (allItems.indexOf(item)) && (
+          <Text style={styles.resultSectionHeader}>Recientes</Text>
+        )}
+        {isFirstResult && !isRecent && (
+          <Text style={styles.resultSectionHeader}>Resultados</Text>
+        )}
+        <TouchableOpacity
+          style={styles.resultRow}
+          onPress={() => handleSelect(item)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.resultIcon, { backgroundColor: isRecent ? Colors.secondaryLight : '#FEE2E2' }]}>
+            <Ionicons name={isRecent ? 'time' : 'location'} size={18} color={isRecent ? Colors.secondaryDark : Colors.error} />
+          </View>
+          <View style={styles.resultText}>
+            <Text style={styles.resultName}>{item.name}</Text>
+            {item.address ? (
+              <Text style={styles.resultSub} numberOfLines={1}>{item.address}</Text>
+            ) : null}
+          </View>
+        </TouchableOpacity>
+      </>
     );
   };
 
@@ -371,8 +388,8 @@ function lineColor(name: string): string {
 }
 
 // ── Journey generation using GTFS stop data ───────────────────────────────────
-function generateJourneys(from: Location, to: Location): Journey[] {
-  const now = new Date();
+function generateJourneys(from: Location, to: Location, baseTime: Date = new Date()): Journey[] {
+  const now = baseTime;
   const AVG_BUS_SPEED_KMH = 16; // Montevideo average
   const WALK_SPEED_KMH = 4.5;
 
@@ -536,38 +553,56 @@ export default function HomeScreen() {
   const setTo = useJourneyStore((s) => s.setTo);
   const swapLocations = useJourneyStore((s) => s.swapLocations);
   const addRecentJourney = useJourneyStore((s) => s.addRecentJourney);
+  const addRecentLocation = useJourneyStore((s) => s.addRecentLocation);
   const saveJourney = useJourneyStore((s) => s.saveJourney);
   const unsaveJourney = useJourneyStore((s) => s.unsaveJourney);
   const isJourneySaved = useJourneyStore((s) => s.isJourneySaved);
   const setSelectedJourney = useJourneyStore((s) => s.setSelectedJourney);
+  const activeJourney = useJourneyStore((s) => s.activeJourney);
+  const setActiveJourney = useJourneyStore((s) => s.setActiveJourney);
+  const recentJourneys = useJourneyStore((s) => s.recentJourneys);
+  const savedJourneys = useJourneyStore((s) => s.savedJourneys);
   const favoriteStops = useFavoritesStore((s) => s.favoriteStops);
 
   const [pickingField, setPickingField] = useState<PickingField>(null);
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [searching, setSearching] = useState(false);
 
+  // Departure time state
+  const [isNow, setIsNow] = useState(true);
+  const [departureTime, setDepartureTime] = useState(new Date());
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // Active journey countdown
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    if (!activeJourney) return;
+    const interval = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(interval);
+  }, [activeJourney]);
+
   const handleSelect = useCallback(
     (location: Location) => {
       if (pickingField === 'from') setFrom(location);
       else if (pickingField === 'to') setTo(location);
+      addRecentLocation(location);
       setPickingField(null);
-      // Clear previous results when locations change
       setJourneys([]);
     },
-    [pickingField, setFrom, setTo]
+    [pickingField, setFrom, setTo, addRecentLocation]
   );
 
   const handleSearch = useCallback(async () => {
     if (!fromLocation || !toLocation) return;
     setSearching(true);
     setJourneys([]);
-    // Small yield so the loading indicator renders before the GTFS search runs
     await new Promise((r) => setTimeout(r, 50));
-    const results = generateJourneys(fromLocation, toLocation);
+    const base = isNow ? new Date() : departureTime;
+    const results = generateJourneys(fromLocation, toLocation, base);
     results.forEach((j) => addRecentJourney(j));
     setJourneys(results);
     setSearching(false);
-  }, [fromLocation, toLocation, addRecentJourney]);
+  }, [fromLocation, toLocation, addRecentJourney, isNow, departureTime]);
 
   const handleJourneyPress = useCallback((journey: Journey) => {
     setSelectedJourney(journey);
@@ -635,6 +670,53 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Departure time toggle */}
+          <View style={styles.timeToggleRow}>
+            <TouchableOpacity
+              style={[styles.timeToggleBtn, isNow && styles.timeToggleBtnActive]}
+              onPress={() => { setIsNow(true); setShowTimePicker(false); }}
+            >
+              <Ionicons name="time" size={14} color={isNow ? Colors.secondaryText : Colors.textSecondary} />
+              <Text style={[styles.timeToggleText, isNow && styles.timeToggleTextActive]}>Ahora</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.timeToggleBtn, !isNow && styles.timeToggleBtnActive]}
+              onPress={() => { setIsNow(false); setShowTimePicker(true); }}
+            >
+              <Ionicons name="calendar" size={14} color={!isNow ? Colors.secondaryText : Colors.textSecondary} />
+              <Text style={[styles.timeToggleText, !isNow && styles.timeToggleTextActive]}>
+                {!isNow ? formatTime(departureTime) : 'Más tarde'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* iOS inline time picker */}
+          {showTimePicker && Platform.OS === 'ios' && (
+            <View style={styles.timePickerWrap}>
+              <DateTimePicker
+                value={departureTime}
+                mode="time"
+                display="spinner"
+                textColor={Colors.primary}
+                onChange={(_, date) => { if (date) setDepartureTime(date); }}
+                style={{ height: 120 }}
+              />
+              <TouchableOpacity onPress={() => setShowTimePicker(false)} style={styles.timePickerDone}>
+                <Text style={styles.timePickerDoneText}>Listo</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Android time picker (modal) */}
+          {showTimePicker && Platform.OS === 'android' && (
+            <DateTimePicker
+              value={departureTime}
+              mode="time"
+              display="default"
+              onChange={(_, date) => { setShowTimePicker(false); if (date) setDepartureTime(date); }}
+            />
+          )}
+
           {/* Search button */}
           <TouchableOpacity
             style={[styles.searchBtn, !canSearch && styles.searchBtnDisabled]}
@@ -643,8 +725,8 @@ export default function HomeScreen() {
             disabled={!canSearch || searching}
           >
             {searching
-              ? <ActivityIndicator size="small" color={Colors.white} />
-              : <Ionicons name="search" size={18} color={canSearch ? Colors.white : Colors.textTertiary} />
+              ? <ActivityIndicator size="small" color={Colors.secondaryText} />
+              : <Ionicons name="search" size={18} color={canSearch ? Colors.secondaryText : Colors.textTertiary} />
             }
             <Text style={[styles.searchBtnText, !canSearch && styles.searchBtnTextDisabled]}>
               {searching ? 'Buscando...' : 'Buscar viaje'}
@@ -660,6 +742,64 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* ── Active journey widget ── */}
+        {activeJourney && (() => {
+          const dep = new Date(activeJourney.departureTime);
+          const arr = new Date(activeJourney.arrivalTime);
+          const minsUntilDep = Math.round((dep.getTime() - now.getTime()) / 60000);
+          const firstWalk = activeJourney.legs.find((l) => l.type === 'walk');
+          const firstBus = activeJourney.legs.find((l) => l.type === 'bus');
+          const walkMins = firstWalk?.duration ?? 0;
+          const leaveNow = minsUntilDep <= walkMins + 1;
+          const urgentColor = minsUntilDep < 3 ? Colors.error : minsUntilDep < 8 ? Colors.warning : Colors.success;
+          return (
+            <TouchableOpacity
+              style={styles.activeWidget}
+              onPress={() => { setSelectedJourney(activeJourney); router.push(`/trip/${activeJourney.id}`); }}
+              activeOpacity={0.9}
+            >
+              <View style={styles.activeWidgetTop}>
+                <View style={styles.activeWidgetLeft}>
+                  <Text style={styles.activeWidgetLabel}>Viaje activo</Text>
+                  <Text style={styles.activeWidgetRoute} numberOfLines={1}>
+                    {activeJourney.from.name.split(' ')[0]} → {activeJourney.to.name.split(' ')[0]}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setActiveJourney(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close-circle" size={22} color="rgba(255,255,255,0.7)" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.activeWidgetSteps}>
+                {walkMins > 0 && (
+                  <View style={styles.activeStep}>
+                    <Ionicons name="walk" size={16} color={Colors.white} />
+                    <Text style={styles.activeStepText}>{walkMins} min a pie</Text>
+                  </View>
+                )}
+                {firstBus && (
+                  <View style={styles.activeStep}>
+                    <View style={[styles.activeBusBadge, { backgroundColor: firstBus.line?.color ?? Colors.primaryDark }]}>
+                      <Text style={styles.activeBusBadgeText}>{firstBus.line?.shortName}</Text>
+                    </View>
+                    <Text style={styles.activeStepText}>{formatTime(new Date(firstBus.departureTime))}</Text>
+                  </View>
+                )}
+                <View style={styles.activeStep}>
+                  <Ionicons name="location" size={16} color={Colors.white} />
+                  <Text style={styles.activeStepText}>{formatTime(arr)}</Text>
+                </View>
+              </View>
+
+              <View style={[styles.activeWidgetCta, { backgroundColor: leaveNow ? Colors.error : urgentColor }]}>
+                <Text style={styles.activeWidgetCtaText}>
+                  {minsUntilDep <= 0 ? '¡Ya!' : leaveNow ? '¡Sal ahora!' : `Sale en ${minsUntilDep} min`}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })()}
+
         {/* Journey results */}
         {journeys.length > 0 && (
           <View style={styles.section}>
@@ -674,6 +814,26 @@ export default function HomeScreen() {
                 key={j.id}
                 journey={j}
                 onPress={() => handleJourneyPress(j)}
+                onSave={() => isJourneySaved(j.id) ? unsaveJourney(j.id) : saveJourney(j)}
+                saved={isJourneySaved(j.id)}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* Recent / saved journeys */}
+        {journeys.length === 0 && (recentJourneys.length > 0 || savedJourneys.length > 0) && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {savedJourneys.length > 0 ? 'Guardados y recientes' : 'Recientes'}
+              </Text>
+            </View>
+            {[...savedJourneys.slice(0, 2), ...recentJourneys.filter(j => !savedJourneys.some(s => s.id === j.id)).slice(0, 3)].map((j) => (
+              <JourneyResultCard
+                key={j.id}
+                journey={j}
+                onPress={() => { setSelectedJourney(j); router.push(`/trip/${j.id}`); }}
                 onSave={() => isJourneySaved(j.id) ? unsaveJourney(j.id) : saveJourney(j)}
                 saved={isJourneySaved(j.id)}
               />
@@ -833,9 +993,39 @@ const styles = StyleSheet.create({
     marginLeft: Theme.spacing.sm,
   },
 
+  // Departure time toggle
+  timeToggleRow: {
+    flexDirection: 'row',
+    gap: Theme.spacing.sm,
+  },
+  timeToggleBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 8, borderRadius: Theme.radius.full,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  timeToggleBtnActive: {
+    backgroundColor: Colors.secondary,
+  },
+  timeToggleText: {
+    fontSize: Theme.fontSize.sm, fontWeight: '600', color: 'rgba(255,255,255,0.85)',
+  },
+  timeToggleTextActive: {
+    color: Colors.secondaryText,
+  },
+  timePickerWrap: {
+    backgroundColor: Colors.white, borderRadius: Theme.radius.xl,
+    overflow: 'hidden', alignItems: 'center',
+  },
+  timePickerDone: {
+    paddingVertical: 10, paddingHorizontal: 24,
+    backgroundColor: Colors.secondary, borderRadius: Theme.radius.full,
+    marginBottom: 10,
+  },
+  timePickerDoneText: { color: Colors.secondaryText, fontWeight: '700' },
+
   // Search button
   searchBtn: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.secondary,
     borderRadius: Theme.radius.full,
     flexDirection: 'row',
     alignItems: 'center',
@@ -845,15 +1035,15 @@ const styles = StyleSheet.create({
     ...Theme.shadow.sm,
   },
   searchBtnDisabled: {
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   searchBtnText: {
-    color: Colors.primary,
+    color: Colors.secondaryText,
     fontSize: Theme.fontSize.base,
     fontWeight: Theme.fontWeight.bold,
   },
   searchBtnTextDisabled: {
-    color: Colors.textTertiary,
+    color: 'rgba(255,255,255,0.5)',
   },
 
   // ── Body ────────────────────────────────────────────────────────────────
@@ -1001,6 +1191,37 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     lineHeight: 18,
     fontWeight: Theme.fontWeight.medium,
+  },
+
+  // ── Active journey widget ────────────────────────────────────────────────
+  activeWidget: {
+    backgroundColor: Colors.primary, marginHorizontal: Theme.spacing.base,
+    marginBottom: Theme.spacing.base, borderRadius: Theme.radius.xl,
+    padding: Theme.spacing.base, ...Theme.shadow.md,
+  },
+  activeWidgetTop: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    marginBottom: Theme.spacing.sm,
+  },
+  activeWidgetLeft: { flex: 1 },
+  activeWidgetLabel: { fontSize: Theme.fontSize.xs, color: 'rgba(255,255,255,0.7)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  activeWidgetRoute: { fontSize: Theme.fontSize.md, fontWeight: '800', color: Colors.white, marginTop: 2 },
+  activeWidgetSteps: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.sm, marginBottom: Theme.spacing.sm, flexWrap: 'wrap' },
+  activeStep: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  activeStepText: { color: 'rgba(255,255,255,0.9)', fontSize: Theme.fontSize.sm, fontWeight: '600' },
+  activeBusBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  activeBusBadgeText: { color: Colors.white, fontSize: 11, fontWeight: '800' },
+  activeWidgetCta: {
+    borderRadius: Theme.radius.full, paddingVertical: 8,
+    alignItems: 'center', marginTop: 4,
+  },
+  activeWidgetCtaText: { color: Colors.white, fontWeight: '800', fontSize: Theme.fontSize.base },
+
+  // ── Result section header ────────────────────────────────────────────────
+  resultSectionHeader: {
+    fontSize: Theme.fontSize.xs, fontWeight: '700', color: Colors.textSecondary,
+    textTransform: 'uppercase', letterSpacing: 0.6,
+    paddingHorizontal: Theme.spacing.base, paddingTop: Theme.spacing.base, paddingBottom: 4,
   },
 
   // ── Journey result cards ─────────────────────────────────────────────────

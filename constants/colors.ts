@@ -1,9 +1,15 @@
 export const Colors = {
-  // Primary brand blue (replaces NS yellow)
+  // Primary brand blue
   primary: '#0055B3',
   primaryDark: '#003D80',
   primaryLight: '#3380CC',
   primarySurface: '#E8F0FA',
+
+  // Secondary — Uruguay yellow
+  secondary: '#F5C800',
+  secondaryDark: '#C9A200',
+  secondaryLight: '#FFF8D6',
+  secondaryText: '#7A5F00',
 
   // Background & surfaces
   background: '#FFFFFF',

@@ -89,6 +89,8 @@ export default function TripDetailScreen() {
   const saveJourney = useJourneyStore((s) => s.saveJourney);
   const unsaveJourney = useJourneyStore((s) => s.unsaveJourney);
   const isJourneySaved = useJourneyStore((s) => s.isJourneySaved);
+  const setActiveJourney = useJourneyStore((s) => s.setActiveJourney);
+  const activeJourney = useJourneyStore((s) => s.activeJourney);
   const mapRef = useRef<MapView>(null);
 
   // Real street-following routes per leg (fetched from OSRM)
@@ -246,7 +248,7 @@ export default function TripDetailScreen() {
 
       {/* ── JOURNEY SUMMARY ── */}
       <View style={styles.summary}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.summaryTimes}>
             {formatTime(new Date(journey.departureTime))} — {formatTime(new Date(journey.arrivalTime))}
           </Text>
@@ -261,6 +263,27 @@ export default function TripDetailScreen() {
           </Text>
         </View>
       </View>
+
+      {/* ── ACTIVATE JOURNEY BUTTON ── */}
+      {activeJourney?.id !== journey.id ? (
+        <TouchableOpacity
+          style={styles.activateBtn}
+          onPress={() => { setActiveJourney(journey); router.back(); }}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="navigate" size={18} color={Colors.secondaryText} />
+          <Text style={styles.activateBtnText}>Seguir este viaje</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={[styles.activateBtn, styles.deactivateBtn]}
+          onPress={() => setActiveJourney(null)}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="close-circle" size={18} color={Colors.textSecondary} />
+          <Text style={styles.deactivateBtnText}>Dejar de seguir</Text>
+        </TouchableOpacity>
+      )}
 
       {/* ── TIMELINE ── */}
       <ScrollView style={styles.timeline_} contentContainerStyle={{ padding: Theme.spacing.base, paddingBottom: 48 }}>
@@ -359,6 +382,15 @@ const styles = StyleSheet.create({
   },
   arrivalRow: { flexDirection: 'row' },
   arrivalName: { fontSize: Theme.fontSize.base, fontWeight: '700', color: Colors.textPrimary, marginTop: 4 },
+  activateBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.secondary, marginHorizontal: Theme.spacing.base,
+    marginVertical: Theme.spacing.sm, borderRadius: Theme.radius.full,
+    paddingVertical: 12, gap: Theme.spacing.sm,
+  },
+  activateBtnText: { color: Colors.secondaryText, fontWeight: '700', fontSize: Theme.fontSize.base },
+  deactivateBtn: { backgroundColor: Colors.surface },
+  deactivateBtnText: { color: Colors.textSecondary, fontWeight: '600', fontSize: Theme.fontSize.base },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   emptyText: { fontSize: Theme.fontSize.md, color: Colors.textSecondary },
   backBtn: { backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: Theme.radius.full },

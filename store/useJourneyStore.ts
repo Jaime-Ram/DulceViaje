@@ -14,6 +14,8 @@ interface JourneyState {
   recentJourneys: Journey[];
   savedJourneys: Journey[];
   selectedJourney: Journey | null;
+  activeJourney: Journey | null;
+  recentLocations: Location[];
 
   setFrom(location: Location | null): void;
   setTo(location: Location | null): void;
@@ -21,10 +23,12 @@ interface JourneyState {
   setDepartureTime(date: Date): void;
   setIsNow(isNow: boolean): void;
   addRecentJourney(journey: Journey): void;
+  addRecentLocation(location: Location): void;
   saveJourney(journey: Journey): void;
   unsaveJourney(id: string): void;
   isJourneySaved(id: string): boolean;
   setSelectedJourney(journey: Journey | null): void;
+  setActiveJourney(journey: Journey | null): void;
   clearLocations(): void;
 }
 
@@ -38,6 +42,8 @@ export const useJourneyStore = create<JourneyState>()(
       recentJourneys: [],
       savedJourneys: [],
       selectedJourney: null,
+      activeJourney: null,
+      recentLocations: [],
 
       setFrom: (location) => set({ fromLocation: location }),
       setTo: (location) => set({ toLocation: location }),
@@ -57,6 +63,15 @@ export const useJourneyStore = create<JourneyState>()(
         });
       },
 
+      addRecentLocation(location) {
+        set((state) => {
+          const filtered = state.recentLocations.filter(
+            (l) => l.name !== location.name
+          );
+          return { recentLocations: [location, ...filtered].slice(0, 8) };
+        });
+      },
+
       saveJourney(journey) {
         set((state) => {
           if (state.savedJourneys.some((j) => j.id === journey.id)) return state;
@@ -72,6 +87,8 @@ export const useJourneyStore = create<JourneyState>()(
 
       setSelectedJourney: (journey) => set({ selectedJourney: journey }),
 
+      setActiveJourney: (journey) => set({ activeJourney: journey }),
+
       clearLocations: () => set({ fromLocation: null, toLocation: null }),
     }),
     {
@@ -81,6 +98,7 @@ export const useJourneyStore = create<JourneyState>()(
       partialize: (state) => ({
         recentJourneys: state.recentJourneys,
         savedJourneys: state.savedJourneys,
+        recentLocations: state.recentLocations,
       }),
     }
   )
