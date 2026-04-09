@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
+  Linking, ActionSheetIOS, Platform, Alert,
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +36,46 @@ function LegIcon({ leg }: { leg: JourneyLeg }) {
       <Text style={styles.legIconText}>{leg.line?.shortName ?? '?'}</Text>
     </View>
   );
+}
+
+// ── Open walking leg in Maps ──────────────────────────────────────────────────
+function openWalkInMaps(leg: JourneyLeg) {
+  const { latitude: lat1, longitude: lon1 } = leg.from;
+  const { latitude: lat2, longitude: lon2 } = leg.to;
+  const appleMapsUrl = `maps://maps.apple.com/?saddr=${lat1},${lon1}&daddr=${lat2},${lon2}&dirflg=w`;
+  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${lat1},${lon1}&destination=${lat2},${lon2}&travelmode=walking`;
+
+  if (Platform.OS === 'ios') {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ['Cancelar', 'Apple Maps', 'Google Maps'],
+        cancelButtonIndex: 0,
+      },
+      (buttonIndex) => {
+        if (buttonIndex === 1) {
+          Linking.openURL(appleMapsUrl).catch(() => Linking.openURL(googleMapsUrl));
+        } else if (buttonIndex === 2) {
+          Linking.openURL(googleMapsUrl);
+        }
+      }
+    );
+  } else {
+    Alert.alert(
+      'Abrir en Maps',
+      'Selecciona una aplicación',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Google Maps',
+          onPress: () => Linking.openURL(googleMapsUrl),
+        },
+        {
+          text: 'Apple Maps',
+          onPress: () => Linking.openURL(appleMapsUrl).catch(() => Linking.openURL(googleMapsUrl)),
+        },
+      ]
+    );
+  }
 }
 
 // ── Timeline leg ─────────────────────────────────────────────────────────────
@@ -87,6 +128,16 @@ function LegRow({ leg, isLast }: { leg: JourneyLeg; isLast: boolean }) {
             <Text style={styles.legDur}>
               {leg.distance ? `${leg.distance}m · ` : ''}{formatDuration(leg.duration)} caminando
             </Text>
+            {leg.from.latitude !== 0 && leg.to.latitude !== 0 && (
+              <TouchableOpacity
+                style={styles.openMapsBtn}
+                onPress={() => openWalkInMaps(leg)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="navigate-outline" size={13} color={Colors.primary} />
+                <Text style={styles.openMapsBtnText}>Abrir en Maps</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -398,7 +449,15 @@ const styles = StyleSheet.create({
   wheelchairText: { fontSize: 10, fontWeight: '600', color: '#38A169' },
   walkDetail: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingVertical: Theme.spacing.sm,
+    paddingVertical: Theme.spacing.sm, flexWrap: 'wrap',
+  },
+  openMapsBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: Colors.primarySurface, borderRadius: Theme.radius.full,
+    paddingHorizontal: 8, paddingVertical: 3, marginLeft: 4,
+  },
+  openMapsBtnText: {
+    fontSize: 11, fontWeight: '600', color: Colors.primary,
   },
   arrivalRow: { flexDirection: 'row' },
   arrivalName: { fontSize: Theme.fontSize.base, fontWeight: '700', color: Colors.textPrimary, marginTop: 4 },

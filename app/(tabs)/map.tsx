@@ -317,17 +317,23 @@ function BottomSheet({
   const [depsLoading, setDepsLoading] = useState(true);
   const router = useRouter();
 
+  // Keep callback refs stable so PanResponder doesn't capture stale closures
+  const onExpandRef = useRef(onExpand);
+  const onCollapseRef = useRef(onCollapse);
+  useEffect(() => { onExpandRef.current = onExpand; }, [onExpand]);
+  useEffect(() => { onCollapseRef.current = onCollapse; }, [onCollapse]);
+
   const loadDepartures = useCallback(async () => {
     setDepsLoading(true);
     try {
       const deps = await getUpcomingBuses(stop.id, undefined, 5, stop.latitude, stop.longitude);
-      setDepartures(deps);
+      setDepartures(deps ?? []);
     } catch {
       setDepartures([]);
     } finally {
       setDepsLoading(false);
     }
-  }, [stop.id]);
+  }, [stop.id, stop.latitude, stop.longitude]);
 
   // Load on mount and auto-refresh every 30s
   useEffect(() => {
@@ -336,17 +342,19 @@ function BottomSheet({
     return () => clearInterval(interval);
   }, [loadDepartures]);
 
-  // PanResponder for swipe gesture on handle
+  // PanResponder for swipe gesture on handle — uses refs to avoid stale closures
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 5,
       onPanResponderRelease: (_, gs) => {
-        if (gs.dy < -30) {
-          onExpand();
-        } else if (gs.dy > 30) {
-          onCollapse();
-        }
+        try {
+          if (gs.dy < -30) {
+            onExpandRef.current();
+          } else if (gs.dy > 30) {
+            onCollapseRef.current();
+          }
+        } catch {}
       },
     })
   ).current;

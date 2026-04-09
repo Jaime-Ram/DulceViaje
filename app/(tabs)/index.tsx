@@ -390,10 +390,10 @@ function lineColor(name: string): string {
 }
 
 // ── Journey generation using GTFS stop data ───────────────────────────────────
-function generateJourneys(from: Location, to: Location, baseTime: Date = new Date()): Journey[] {
+function generateJourneys(from: Location, to: Location, baseTime: Date = new Date(), walkSpeedKmh: number = 4.5): Journey[] {
   const now = baseTime;
   const AVG_BUS_SPEED_KMH = 16; // Montevideo average
-  const WALK_SPEED_KMH = 4.5;
+  const WALK_SPEED_KMH = walkSpeedKmh;
 
   // Find nearby stops (within 700m of each end)
   const fromStops = findNearbyStops(from.latitude, from.longitude, 700).slice(0, 6);
@@ -590,6 +590,8 @@ function JourneyResultCard({
 }
 
 type PickingField = 'from' | 'to' | null;
+type WalkSpeed = 'rapido' | 'normal' | 'tranquilo';
+const WALK_SPEED_MAP: Record<WalkSpeed, number> = { rapido: 5.5, normal: 4.5, tranquilo: 3.0 };
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -614,6 +616,9 @@ export default function HomeScreen() {
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [searching, setSearching] = useState(false);
   const [timeOffsetMin, setTimeOffsetMin] = useState(0); // for Earlier/Later navigation
+
+  // Walking speed preference
+  const [walkSpeed, setWalkSpeed] = useState<WalkSpeed>('normal');
 
   // Departure time state
   const [isNow, setIsNow] = useState(true);
@@ -646,11 +651,11 @@ export default function HomeScreen() {
     await new Promise((r) => setTimeout(r, 50));
     const base = isNow ? new Date() : departureTime;
     const shifted = new Date(base.getTime() + offsetMin * 60000);
-    const results = generateJourneys(fromLocation, toLocation, shifted);
+    const results = generateJourneys(fromLocation, toLocation, shifted, WALK_SPEED_MAP[walkSpeed]);
     results.forEach((j) => addRecentJourney(j));
     setJourneys(results);
     setSearching(false);
-  }, [fromLocation, toLocation, addRecentJourney, isNow, departureTime]);
+  }, [fromLocation, toLocation, addRecentJourney, isNow, departureTime, walkSpeed]);
 
   const handleSearch = useCallback(async () => {
     setTimeOffsetMin(0);
@@ -701,7 +706,11 @@ export default function HomeScreen() {
             {/* Divider line with swap button absolutely centered */}
             <View style={styles.planDivider}>
               <View style={styles.planDividerLine} />
-              <TouchableOpacity style={styles.swapBtn} onPress={swapLocations} activeOpacity={0.8}>
+              <TouchableOpacity
+                style={styles.swapBtn}
+                onPress={() => { swapLocations(); setJourneys([]); setTimeOffsetMin(0); }}
+                activeOpacity={0.8}
+              >
                 <Ionicons name="swap-vertical" size={18} color={Colors.primary} />
               </TouchableOpacity>
             </View>
@@ -797,6 +806,23 @@ export default function HomeScreen() {
               {searching ? 'Buscando...' : 'Buscar viaje'}
             </Text>
           </TouchableOpacity>
+
+          {/* Walking speed toggle */}
+          <View style={styles.walkSpeedRow}>
+            <Ionicons name="walk" size={13} color="rgba(255,255,255,0.75)" style={{ marginRight: 6 }} />
+            {(['rapido', 'normal', 'tranquilo'] as const).map((speed) => (
+              <TouchableOpacity
+                key={speed}
+                style={[styles.walkSpeedBtn, walkSpeed === speed && styles.walkSpeedBtnActive]}
+                onPress={() => setWalkSpeed(speed)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.walkSpeedText, walkSpeed === speed && styles.walkSpeedTextActive]}>
+                  {speed === 'rapido' ? 'Rápido' : speed === 'normal' ? 'Normal' : 'Tranquilo'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </SafeAreaView>
 
@@ -1173,6 +1199,31 @@ const styles = StyleSheet.create({
   },
   searchBtnTextDisabled: {
     color: 'rgba(255,255,255,0.5)',
+  },
+
+  // Walking speed toggle
+  walkSpeedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  walkSpeedBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: Theme.radius.full,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+  },
+  walkSpeedBtnActive: {
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  walkSpeedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  walkSpeedTextActive: {
+    color: Colors.white,
   },
 
   // ── Body ────────────────────────────────────────────────────────────────
