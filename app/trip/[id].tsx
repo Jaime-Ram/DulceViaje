@@ -333,20 +333,20 @@ export default function TripDetailScreen() {
       {activeJourney?.id !== journey.id ? (
         <TouchableOpacity
           style={styles.activateBtn}
-          onPress={() => { setActiveJourney(journey); router.back(); }}
+          onPress={() => { setActiveJourney(journey); router.push('/live-trip'); }}
           activeOpacity={0.85}
         >
           <Ionicons name="navigate" size={18} color={Colors.secondaryText} />
-          <Text style={styles.activateBtnText}>Seguir este viaje</Text>
+          <Text style={styles.activateBtnText}>Seguir este viaje en vivo</Text>
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
-          style={[styles.activateBtn, styles.deactivateBtn]}
-          onPress={() => setActiveJourney(null)}
+          style={[styles.activateBtn, { backgroundColor: Colors.primary }]}
+          onPress={() => router.push('/live-trip')}
           activeOpacity={0.85}
         >
-          <Ionicons name="close-circle" size={18} color={Colors.textSecondary} />
-          <Text style={styles.deactivateBtnText}>Dejar de seguir</Text>
+          <Ionicons name="radio-button-on" size={18} color={Colors.white} />
+          <Text style={[styles.activateBtnText, { color: Colors.white }]}>Ver mapa en vivo</Text>
         </TouchableOpacity>
       )}
 

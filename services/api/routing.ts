@@ -62,3 +62,44 @@ export async function getBusRoute(
 ): Promise<RouteCoord[]> {
   return fetchOSRMRoute('driving', from, to);
 }
+
+// Route through multiple waypoints — samples up to 25 evenly-spaced stops
+// and requests a single OSRM route with all of them as waypoints.
+export async function getMultiWaypointRoute(
+  waypoints: { latitude: number; longitude: number }[]
+): Promise<RouteCoord[]> {
+  if (waypoints.length < 2) return [];
+
+  // Sample at most 25 waypoints evenly so we stay within URL limits
+  const MAX_WP = 25;
+  let sampled = waypoints;
+  if (waypoints.length > MAX_WP) {
+    const step = (waypoints.length - 1) / (MAX_WP - 1);
+    sampled = Array.from({ length: MAX_WP }, (_, i) =>
+      waypoints[Math.round(i * step)]
+    );
+  }
+
+  const coordStr = sampled
+    .map((p) => `${p.longitude},${p.latitude}`)
+    .join(';');
+  const url = `${OSRM_BASE}/driving/${coordStr}?overview=full&geometries=geojson`;
+
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': 'Bondivideo/1.0' } });
+    if (!res.ok) return straightLineThrough(waypoints);
+    const data = await res.json();
+    const coords2d: [number, number][] = data?.routes?.[0]?.geometry?.coordinates ?? [];
+    if (coords2d.length === 0) return straightLineThrough(waypoints);
+    return coords2d.map(([lon, lat]) => ({ latitude: lat, longitude: lon }));
+  } catch {
+    return straightLineThrough(waypoints);
+  }
+}
+
+// Fallback: straight lines connecting all waypoints
+function straightLineThrough(
+  waypoints: { latitude: number; longitude: number }[]
+): RouteCoord[] {
+  return waypoints.map((p) => ({ latitude: p.latitude, longitude: p.longitude }));
+}

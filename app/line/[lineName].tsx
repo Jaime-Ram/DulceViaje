@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getLiveBusesForLine, getVariantsForLine } from '../../services/api/lines';
 import { getStopsForLine, LineStop } from '../../services/storage/stopRoutes';
+import { getMultiWaypointRoute, RouteCoord } from '../../services/api/routing';
 import { Colors } from '../../constants/colors';
 import { Theme } from '../../constants/theme';
 import { LiveBus, LineVariant } from '../../types';
@@ -57,6 +58,7 @@ export default function LineDetailScreen() {
   const [buses, setBuses] = useState<(LiveBus & { destination?: string; origin?: string })[]>([]);
   const [variants, setVariants] = useState<LineVariant[]>([]);
   const [lineStops, setLineStops] = useState<LineStop[]>([]);
+  const [routeCoords, setRouteCoords] = useState<RouteCoord[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [filterVariant, setFilterVariant] = useState<string | null>(null);
@@ -85,15 +87,14 @@ export default function LineDetailScreen() {
     }
   }, [lineName]);
 
-  // Load stops from local GTFS data and sort with nearest-neighbor for polyline
+  // Load stops and build road-following route via OSRM
   useEffect(() => {
     const raw = getStopsForLine(lineName);
     if (raw.length === 0) return;
 
-    // Nearest-neighbor sort: start from northernmost stop, greedily pick closest unvisited
+    // Nearest-neighbor sort to get approximate stop order
     const sorted: LineStop[] = [];
     const remaining = [...raw];
-    // Start from the northernmost (highest lat)
     let current = remaining.splice(
       remaining.reduce((bi, s, i) => (s.lat > remaining[bi].lat ? i : bi), 0),
       1
@@ -113,12 +114,21 @@ export default function LineDetailScreen() {
     }
 
     setLineStops(sorted);
+
+    // Fit map to route bounds immediately with straight-line stops
     setTimeout(() => {
       mapRef.current?.fitToCoordinates(
         sorted.map((s) => ({ latitude: s.lat, longitude: s.lon })),
         { edgePadding: { top: 100, right: 40, bottom: 200, left: 40 }, animated: true }
       );
     }, 500);
+
+    // Fetch road-following route via OSRM (async, replaces the straight-line polyline)
+    getMultiWaypointRoute(sorted.map((s) => ({ latitude: s.lat, longitude: s.lon })))
+      .then((coords) => {
+        if (coords.length > 0) setRouteCoords(coords);
+      })
+      .catch(() => {});
   }, [lineName]);
 
   useEffect(() => {
@@ -151,12 +161,12 @@ export default function LineDetailScreen() {
         showsCompass={false}
         toolbarEnabled={false}
       >
-        {/* Route polyline */}
-        {lineStops.length > 1 && (
+        {/* Route polyline — road-following via OSRM, falls back to stop sequence */}
+        {(routeCoords.length > 1 ? routeCoords : lineStops.map((s) => ({ latitude: s.lat, longitude: s.lon }))).length > 1 && (
           <Polyline
-            coordinates={lineStops.map((s) => ({ latitude: s.lat, longitude: s.lon }))}
+            coordinates={routeCoords.length > 1 ? routeCoords : lineStops.map((s) => ({ latitude: s.lat, longitude: s.lon }))}
             strokeColor={color}
-            strokeWidth={3}
+            strokeWidth={4}
             lineDashPattern={[]}
           />
         )}

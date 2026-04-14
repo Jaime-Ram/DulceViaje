@@ -93,6 +93,7 @@ function BusMarker({ bus }: { bus: LiveBus }) {
       coordinate={{ latitude: bus.latitude, longitude: bus.longitude }}
       anchor={{ x: 0.5, y: 0.5 }}
       tracksViewChanges={false}
+      tracksInfoWindowChanges={false}
     >
       <View style={[styles.busMarker, { backgroundColor: lineColor(bus.lineName) }]}>
         <Text style={styles.busMarkerText}>{bus.lineName}</Text>
@@ -640,6 +641,8 @@ export default function MapScreen() {
         showsMyLocationButton={false}
         showsCompass={false}
         moveOnMarkerPress={false}
+        minZoomLevel={3}
+        maxZoomLevel={20}
       >
         {visibleStops.map((stop) => (
           <StopMarker
