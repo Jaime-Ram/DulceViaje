@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.bondivideo.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Bondivideo gebruikt je locatie om nabijgelegen bushaltes te tonen en je reis te plannen.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Bondivideo gebruikt je locatie om nabijgelegen bushaltes te tonen en je reis te plannen.",
@@ -37,7 +37,9 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "INTERNET"
+        "INTERNET",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -61,8 +63,10 @@
     "extra": {
       "privacyPolicyUrl": "https://jaime-ram.github.io/Bondivideo/privacy",
       "eas": {
-        "projectId": "VUL_HIER_JE_EAS_PROJECT_ID_IN"
-      }
-    }
+        "projectId": "e3941624-f717-49e0-94c8-6a21e6163ab6"
+      },
+      "router": {}
+    },
+    "owner": "domiovastgoedbeheer"
   }
 }
